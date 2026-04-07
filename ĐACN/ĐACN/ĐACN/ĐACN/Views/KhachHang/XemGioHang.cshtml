@@ -1,0 +1,644 @@
+﻿@model List<ĐACN.Models.CartItem>
+@using ĐACN.Models
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Giỏ Hàng";
+
+    var nhaHangList = new List<NhaHangGioHang>();
+    if (Model != null && Model.Any())
+    {
+        nhaHangList = Model.GroupBy(x => x.MaNH)
+                           .Select(g => new NhaHangGioHang { MaNH = g.Key, TenNH = g.First().TenNH })
+                           .ToList();
+    }
+
+    string sdtMacDinh = ViewBag.SDT as string ?? "";
+    decimal initPhiDichVu = ViewBag.PhiDichVu != null ? (decimal)ViewBag.PhiDichVu : 0;
+
+    string diaChiMacDinh = ViewBag.DiaChiGiao as string ?? "";
+    decimal initPhiShip = ViewBag.PhiShip != null ? (decimal)ViewBag.PhiShip : 0;
+    double initKhoangCach = ViewBag.KhoangCach != null ? Convert.ToDouble(ViewBag.KhoangCach) : 0;
+}
+
+<style>
+    body {
+        background-color: #f5f7fd;
+    }
+
+    .cart-container {
+        padding-top: 30px;
+        padding-bottom: 50px;
+    }
+
+    .custom-card {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        background-color: #fff;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .payment-header {
+        background-color: #0d6efd;
+        color: white;
+        padding: 15px 20px;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .form-label-required::after {
+        content: " *";
+        color: #dc3545;
+    }
+
+    .form-control, .form-select {
+        padding: 10px 15px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        font-size: 0.95rem;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+        }
+
+    .cart-item-img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    .item-price {
+        color: #0d6efd;
+        font-weight: 700;
+    }
+
+    .btn-update-qty {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+    }
+
+    .total-section {
+        padding: 20px;
+        background-color: #fff;
+        border-top: 1px solid #eee;
+    }
+
+    .final-price {
+        color: #d32f2f;
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+
+    .btn-checkout {
+        background-color: #198754;
+        color: white;
+        padding: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        border-radius: 6px;
+        width: 100%;
+        margin-top: 15px;
+        border: none;
+        transition: 0.3s;
+    }
+
+        .btn-checkout:hover:not(:disabled) {
+            background-color: #146c43;
+        }
+
+        .btn-checkout:disabled {
+            background-color: #a0c3b5;
+            cursor: not-allowed;
+        }
+
+    /* CSS thêm cho phần Thay đổi địa chỉ */
+    .address-display-box {
+        background-color: #f8f9fa;
+        border: 1px dashed #ced4da;
+        border-radius: 6px;
+        padding: 15px;
+    }
+</style>
+
+<div class="cart-container container">
+    @if (TempData["Msg"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show mb-4 shadow-sm" role="alert">
+            <i class="fas fa-bell me-2"></i> @TempData["Msg"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5 bg-white rounded shadow-sm">
+            <img src="https://cdn-icons-png.flaticon.com/512/2038/2038854.png" style="width:100px; opacity:0.5" />
+            <h5 class="mt-3 text-muted">Giỏ hàng trống</h5>
+            <a href="@Url.Action("TrangChu", "Home")" class="btn btn-outline-primary mt-2">Về trang chủ</a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-7">
+                <div class="custom-card p-3 d-flex align-items-center justify-content-between">
+                    <span class="fw-bold text-secondary">Đơn hàng từ nhà hàng:</span>
+                    @if (nhaHangList.Count > 1)
+                    {
+                        <select id="chonNH" class="form-select w-auto fw-bold text-primary border-0 bg-light">
+                            @foreach (var nh in nhaHangList)
+                            {
+                                <option value="@nh.MaNH">@nh.TenNH</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <input type="hidden" id="chonNH" value="@nhaHangList[0].MaNH" />
+                        <span class="fw-bold text-primary">@nhaHangList[0].TenNH</span>
+                    }
+                </div>
+                <div id="listItemsArea"></div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="custom-card">
+                    <div class="payment-header">Thông tin thanh toán</div>
+                    <div id="paymentArea"></div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    const allItems = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model ?? new List<CartItem>()));
+    const antiForgeryToken = $('input[name="__RequestVerificationToken"]').val();
+    const initServiceFee = @initPhiDichVu;
+    const defaultPhone = "@Html.Raw(sdtMacDinh)";
+
+    const defaultAddressStr = "@Html.Raw(diaChiMacDinh)";
+    const defaultShipFee = parseFloat("@initPhiShip".replace(',', '.'));
+    const defaultDistance = parseFloat("@initKhoangCach".replace(',', '.'));
+
+    let currentMaNH = $("#chonNH").val();
+    let typingTimer;
+
+    let currentAddress = defaultAddressStr;
+    let currentShipFee = defaultShipFee;
+    let currentDistance = defaultDistance;
+
+    $(document).ready(function() {
+        if(currentMaNH) renderCartUI();
+
+        $(document).on("click", "#btnChangeAddress", function() {
+            $("#viewModeAddress").slideUp();
+            $("#editModeAddress").slideDown();
+            $("#btnSubmitOrder").prop("disabled", true);
+
+            if ($("#city option").length <= 1) {
+                loadProvinces();
+            }
+        });
+
+        $(document).on("click", "#btnCancelEdit", function() {
+            $("#editModeAddress").slideUp();
+            $("#viewModeAddress").slideDown();
+            if(currentShipFee > 0) {
+                $("#btnSubmitOrder").prop("disabled", false);
+                $("#lblPhiShip").text(currentShipFee.toLocaleString() + " đ");
+                updateTotalMoney(currentShipFee);
+            }
+        });
+
+        $(document).on("click", "#btnSaveAddress", function() {
+            triggerCalculate();
+        });
+
+        $(document).on("change", "#city", function() { loadDistricts($(this).val()); });
+        $(document).on("change", "#district", function() { loadWards($(this).val()); });
+    });
+
+    $("#chonNH").on("change", function () {
+        currentMaNH = $(this).val();
+        renderCartUI();
+    });
+
+    function renderCartUI() {
+        if(!currentMaNH) return;
+        const items = allItems.filter(x => x.MaNH === currentMaNH);
+
+        renderCartItems(items);
+        renderPaymentForm(currentMaNH);
+
+        if(defaultAddressStr && defaultAddressStr.length > 10) {
+             checkDefaultAddress(defaultAddressStr);
+        }
+    }
+
+    function renderCartItems(items) {
+        if (!items || items.length === 0) {
+            $("#listItemsArea").html("<div class='alert alert-warning'>Hết món ăn ở nhà hàng này.</div>");
+            return;
+        }
+        let html = "";
+        let subTotal = 0;
+        items.forEach(item => {
+            subTotal += item.ThanhTien;
+            const imgUrl = item.HinhAnh ? `/images/monan/${item.HinhAnh}` : 'https://via.placeholder.com/80';
+            const noteText = item.Note && item.Note.trim() !== "" ? item.Note : "";
+            const noteHtml = noteText
+                ? `<div class="text-muted small fst-italic mb-1">Ghi chú: ${escapeHtml(noteText)}</div>`
+                : "";
+            html += `
+            <div class="custom-card p-3 mb-3 cart-item" data-id="${item.MaGH}">
+                <div class="d-flex align-items-start">
+                    <img src="${imgUrl}" class="cart-item-img me-3">
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between mb-1">
+                            <h6 class="mb-0 fw-bold">${item.TenMon}</h6>
+                            <span class="item-price">${item.ThanhTien.toLocaleString()} đ</span>
+                        </div>
+                        ${noteHtml}
+                        <div class="text-muted small mb-2">${item.Gia.toLocaleString()} đ</div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center border rounded p-1">
+                                <button class="btn btn-light btn-update-qty btn-minus" data-id="${item.MaGH}">-</button>
+                                <input type="text" class="form-control border-0 text-center p-0" style="width:30px; height:30px; background:transparent" value="${item.SoLuong}" readonly>
+                                <button class="btn btn-light btn-update-qty btn-plus" data-id="${item.MaGH}">+</button>
+                            </div>
+                            <button class="btn btn-link text-danger text-decoration-none p-0 small btn-remove" data-id="${item.MaGH}">Xóa</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        $("#listItemsArea").html(html);
+        $("#paymentArea").data("subTotal", subTotal);
+        attachItemEvents();
+        updateTotalMoney(currentShipFee);
+    }
+
+    function renderPaymentForm(maNH) {
+        const subTotal = $("#paymentArea").data("subTotal") || 0;
+
+        let showAddress = currentAddress || "Chưa có địa chỉ";
+        let shipDisplay = (currentShipFee > 0) ? currentShipFee.toLocaleString() + " đ" : "--";
+        let btnDisabled = (currentShipFee > 0) ? "" : "disabled";
+
+
+        const html = `
+        <div class="p-4">
+            <form action="/KhachHang/DatHang" method="post" id="formDatHang">
+                <input type="hidden" name="__RequestVerificationToken" value="${antiForgeryToken}" />
+                <input type="hidden" name="maNH" value="${maNH}" />
+
+                <input type="hidden" name="tinhTP" id="inputCityText" />
+                <input type="hidden" name="quanHuyen" id="inputDistrictText" />
+                <input type="hidden" name="phuongXa" id="inputWardText" />
+                <input type="hidden" name="diaChi" id="finalDiaChi" value="${currentAddress}" />
+
+                <label class="fw-bold mb-3">Địa chỉ giao hàng:</label>
+
+                <div id="viewModeAddress">
+                    <div class="address-display-box d-flex justify-content-between align-items-center mb-2">
+                        <div style="flex: 1; padding-right: 10px;">
+                            <small class="text-muted d-block">Địa chỉ hiện tại:</small>
+                            <span class="fw-bold text-dark" id="lblCurrentAddress" style="word-break: break-word;">${showAddress}</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" id="btnChangeAddress">Thay đổi</button>
+                    </div>
+                    <div id="distMsg" class="mb-4 small text-muted fst-italic">
+                        ${(currentDistance > 0) ? `<i class="fas fa-check-circle text-success"></i> Khoảng cách dự kiến: ${currentDistance} km` : ''}
+                    </div>
+                </div>
+
+                <div id="editModeAddress" style="display:none;" class="mb-3 border rounded p-3 bg-light">
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm mb-2" id="city"><option value="">-- Chọn Tỉnh Thành --</option></select>
+                        <select class="form-select form-select-sm mb-2" id="district" disabled><option value="">-- Chọn Quận Huyện --</option></select>
+                        <select class="form-select form-select-sm mb-2" id="ward" disabled><option value="">-- Chọn Phường Xã --</option></select>
+                        <input type="text" id="streetInput" class="form-control form-control-sm" placeholder="Số nhà, tên đường..." autocomplete="off">
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-sm btn-secondary" id="btnCancelEdit">Hủy</button>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveAddress">Lưu địa chỉ</button>
+                    </div>
+                </div>
+
+                <label class="fw-bold mb-3">Số điện thoại:</label>
+                <div class="mb-4">
+                    <input type="text" name="sdt" class="form-control" value="${defaultPhone}" placeholder="Nhập số điện thoại" required>
+                </div>
+
+                <label class="fw-bold mb-3">Phương thức thanh toán:</label>
+                <div class="mb-4">
+                    <div class="card p-2 bg-light border-0">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="phuongThucTT" id="ttCOD" value="COD" checked>
+                            <label class="form-check-label fw-bold" for="ttCOD">💵 Tiền mặt (COD)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="phuongThucTT" id="ttQR" value="QR">
+                            <label class="form-check-label fw-bold" for="ttQR">📱 Chuyển khoản QR</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="total-section mt-2">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Tạm tính:</span>
+                        <span class="fw-bold" id="subTotalDisplay">${subTotal.toLocaleString()} đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Phí giao hàng:</span>
+                        <span class="fw-bold" id="lblPhiShip">${shipDisplay}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">Phí dịch vụ:</span>
+                        <span class="fw-bold">@initPhiDichVu.ToString("#,0") đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                        <span class="fw-bold fs-5">Tổng cộng:</span>
+                        <span class="final-price" id="lblTongCong">0 đ</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-checkout shadow" id="btnSubmitOrder" ${btnDisabled}>
+                        Xác nhận Đặt hàng
+                    </button>
+                </div>
+            </form>
+        </div>`;
+
+        $("#paymentArea").html(html);
+        updateTotalMoney(currentShipFee);
+    }
+
+
+    function checkDefaultAddress(fullAddress) {
+        $("#distMsg").html('<i class="fas fa-spinner fa-spin"></i> Đang kiểm tra địa chỉ mặc định...').removeClass("text-success text-danger").addClass("text-primary");
+        $("#btnSubmitOrder").prop("disabled", true);
+
+        $.ajax({
+            url: '/KhachHang/GetDistanceNhaHangToKhachHang',
+            type: 'GET',
+            data: {
+                maNH: currentMaNH,
+                diaChi: fullAddress, 
+                phuongXa: "",
+                quanHuyen: "",
+                tinhTP: ""
+            },
+            success: function (res) {
+                if (res.success && res.data) {
+                    let ship = res.data.shipFeeOnly;
+                    let km = (res.data.distance / 1000).toFixed(1);
+
+                    currentShipFee = ship;
+                    currentDistance = km;
+
+                    $("#lblPhiShip").text(ship.toLocaleString() + " đ");
+                    $("#distMsg").html(`<i class="fas fa-check-circle"></i> Địa chỉ hợp lệ (${km} km)`).removeClass("text-primary text-danger").addClass("text-success");
+                    $("#btnSubmitOrder").prop("disabled", false);
+                    updateTotalMoney(ship);
+                } else {
+                    $("#distMsg").html(`<span class='text-danger'><i class="fas fa-exclamation-triangle"></i> Địa chỉ mặc định lỗi: ${res.message}</span>`).removeClass("text-primary").addClass("text-danger");
+                    $("#lblPhiShip").text("Lỗi");
+                    updateTotalMoney(0);
+                }
+            }
+        });
+    }
+
+    function triggerCalculate() {
+        let cityText = $("#city option:selected").text();
+        let districtText = $("#district option:selected").text();
+        let wardText = $("#ward option:selected").text();
+        let street = $("#streetInput").val().trim();
+        let cityId = $("#city").val();
+
+        if (cityId && $("#district").val() && $("#ward").val() && street.length > 2) {
+            $("#inputCityText").val(cityText);
+            $("#inputDistrictText").val(districtText);
+            $("#inputWardText").val(wardText);
+            $("#finalDiaChi").val(street); 
+
+            $("#btnSaveAddress").html('<i class="fas fa-spinner fa-spin"></i> Đang tính...').prop('disabled', true);
+
+            $.ajax({
+                url: '/KhachHang/GetDistanceNhaHangToKhachHang',
+                type: 'GET',
+                data: {
+                    maNH: currentMaNH,
+                    diaChi: street,
+                    phuongXa: wardText,
+                    quanHuyen: districtText,
+                    tinhTP: cityText
+                },
+                success: function (res) {
+                    $("#btnSaveAddress").html('Lưu địa chỉ').prop('disabled', false);
+                    if (res.success && res.data) {
+                        let ship = res.data.shipFeeOnly;
+                        let km = (res.data.distance / 1000).toFixed(1);
+
+                        currentShipFee = ship;
+                        currentDistance = km;
+                        currentAddress = `${street}, ${wardText}, ${districtText}, ${cityText}`;
+
+                        $("#lblCurrentAddress").text(currentAddress);
+                        $("#distMsg").html(`<i class="fas fa-check-circle text-success"></i> Khoảng cách: ${km} km`);
+                        $("#lblPhiShip").text(ship.toLocaleString() + " đ");
+
+                        $("#editModeAddress").slideUp();
+                        $("#viewModeAddress").slideDown();
+                        $("#btnSubmitOrder").prop("disabled", false);
+                        updateTotalMoney(ship);
+                    } else {
+                        alert(res.message || "Không tìm thấy địa chỉ!");
+                    }
+                },
+                error: function() {
+                    $("#btnSaveAddress").html('Lưu địa chỉ').prop('disabled', false);
+                    alert("Lỗi kết nối server!");
+                }
+            });
+        } else {
+            alert("Vui lòng nhập đầy đủ thông tin!");
+        }
+    }
+
+    function loadProvinces() {
+        $.getJSON('https://esgoo.net/api-tinhthanh/1/0.htm', function (data) {
+            if (data.error == 0) {
+                $.each(data.data, function (key, val) {
+                    $("#city").append(`<option value="${val.id}">${val.full_name}</option>`);
+                });
+            }
+        });
+    }
+
+    function loadDistricts(cityId) {
+        $("#district").html('<option value="">-- Chọn Quận Huyện --</option>').prop('disabled', true);
+        $("#ward").html('<option value="">-- Chọn Phường Xã --</option>').prop('disabled', true);
+        if (cityId) {
+            $.getJSON(`https://esgoo.net/api-tinhthanh/2/${cityId}.htm`, function (data) {
+                if (data.error == 0) {
+                    $("#district").prop('disabled', false);
+                    $.each(data.data, function (key, val) {
+                        $("#district").append(`<option value="${val.id}">${val.full_name}</option>`);
+                    });
+                }
+            });
+        }
+    }
+
+    function loadWards(districtId) {
+        $("#ward").html('<option value="">-- Chọn Phường Xã --</option>').prop('disabled', true);
+        if (districtId) {
+            $.getJSON(`https://esgoo.net/api-tinhthanh/3/${districtId}.htm`, function (data) {
+                if (data.error == 0) {
+                    $("#ward").prop('disabled', false);
+                    $.each(data.data, function (key, val) {
+                        $("#ward").append(`<option value="${val.id}">${val.full_name}</option>`);
+                    });
+                }
+            });
+        }
+    }
+
+    function updateTotalMoney(shipFee) {
+        let subTotal = $("#paymentArea").data("subTotal") || 0;
+        let total = subTotal + initServiceFee + shipFee;
+        $("#lblTongCong").text(total.toLocaleString() + " đ");
+    }
+
+    function attachItemEvents() {
+        $(".btn-minus").off("click").click(function() { updateQty($(this).data("id"), -1); });
+        $(".btn-plus").off("click").click(function() { updateQty($(this).data("id"), 1); });
+        $(".btn-remove").off("click").click(function() {
+            if(confirm("Xóa món này khỏi giỏ hàng?")) {
+                let id = $(this).data("id");
+                $.post("/KhachHang/XoaKhoiGio", { maGH: id, __RequestVerificationToken: antiForgeryToken }, function(res){
+                    if(res.success) {
+                        let idx = allItems.findIndex(x => x.MaMon === id);
+                        if(idx > -1) allItems.splice(idx, 1);
+                        const remainingItems = allItems.filter(x => x.MaNH === currentMaNH);
+                        if (typeof updateCartBadge === 'function') {
+                            updateCartBadge();
+                        }
+                        if(remainingItems.length == 0) location.reload();
+                        else {
+                            renderCartItems(remainingItems);
+                            updateTotalMoney(currentShipFee);
+                        }
+                    }
+                });
+            }
+        });
+
+        $(".cart-item").off("click").on("click", function (e) {
+            if ($(e.target).closest(".btn-update-qty, .btn-remove").length > 0) return;
+            const id = $(this).data("id");
+            openNoteModal(id);
+        });
+    }
+
+    function updateQty(id, change) {
+        let item = allItems.find(x => x.MaGH === id);
+        if(!item) return;
+        let newVal = item.SoLuong + change;
+        if(newVal < 1) return;
+        $.post("/KhachHang/CapNhatSoLuong", { maGH: id, soLuong: newVal, __RequestVerificationToken: antiForgeryToken }, function() {
+            if (typeof updateCartBadge === 'function') {
+                updateCartBadge();
+            }
+            item.SoLuong = newVal;
+            item.ThanhTien = item.Gia * newVal;
+            renderCartItems(allItems.filter(x => x.MaNH === currentMaNH));
+            updateTotalMoney(currentShipFee);
+        });
+    }
+
+    let currentNoteMaGH = null;
+
+    function openNoteModal(maGH) {
+        currentNoteMaGH = maGH;
+        const item = allItems.find(x => x.MaGH === maGH);
+        if (!item) return;
+        $("#cartNoteText").val(item.Note || "");
+        const modal = new bootstrap.Modal(document.getElementById("cartNoteModal"));
+        modal.show();
+    }
+
+    $("#btnSaveCartNote").on("click", function () {
+        if (!currentNoteMaGH) return;
+        const note = $("#cartNoteText").val();
+
+        $.ajax({
+            url: "/KhachHang/CapNhatGhiChu",
+            type: "POST",
+            data: { maGH: currentNoteMaGH, note: note, __RequestVerificationToken: antiForgeryToken },
+            success: function (res) {
+                if (res && res.success) {
+                    const item = allItems.find(x => x.MaGH === currentNoteMaGH);
+                    if (item) {
+                        item.Note = note;
+                    }
+                    renderCartItems(allItems.filter(x => x.MaNH === currentMaNH));
+                    updateTotalMoney(currentShipFee);
+                    bootstrap.Modal.getInstance(document.getElementById("cartNoteModal")).hide();
+                } else {
+                    alert(res.message || "Không thể cập nhật ghi chú.");
+                }
+            },
+            error: function () {
+                alert("Lỗi kết nối server. Vui lòng thử lại.");
+            }
+        });
+    });
+
+    function escapeHtml(text) {
+        if (!text) return "";
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+    </script>
+}
+
+<!-- Modal ghi chú trong giỏ hàng -->
+<div class="modal fade" id="cartNoteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ghi chú món ăn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Ghi chú (tùy chọn)</label>
+                    <textarea id="cartNoteText" class="form-control" rows="3" placeholder="Ví dụ: ít cay, không hành, thêm đá..."></textarea>
+                </div>
+                <small class="text-muted">Nếu để trống, món sẽ không có ghi chú.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCartNote">Lưu ghi chú</button>
+            </div>
+        </div>
+    </div>
+</div>

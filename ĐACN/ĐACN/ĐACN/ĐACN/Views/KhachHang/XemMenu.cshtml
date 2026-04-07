@@ -1,0 +1,292 @@
+﻿@model IEnumerable<ĐACN.Models.MonAnViewModel>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var nhaHang = ViewBag.NhaHang as ĐACN.NhaHang;
+    var danhGiaList = ViewBag.DanhSachDanhGia as List<ĐACN.Models.ReviewDisplayModel>;
+    double diemTB = ViewBag.DiemTrungBinh ?? 0;
+    int luotDG = ViewBag.TongLuotDanhGia ?? 0;
+}
+
+<style>
+    /* --- STYLE CARD MÓN ĂN --- */
+    .dish-card {
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        cursor: pointer;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+    }
+
+        .dish-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+
+    .dish-img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+        background-color: #f8f8f8;
+        flex-shrink: 0;
+    }
+
+    .dish-body {
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        flex-grow: 1;
+    }
+
+        .dish-body h5 {
+            font-weight: 600;
+            margin-bottom: 6px;
+            word-wrap: break-word;
+        }
+
+        .dish-body p {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+    .price {
+        font-weight: 600;
+        color: #d32f2f;
+        font-size: 1rem;
+    }
+
+    /* --- STYLE TAB & ĐÁNH GIÁ --- */
+    .nav-tabs .nav-link {
+        color: #555;
+        font-weight: 500;
+    }
+
+        .nav-tabs .nav-link.active {
+            color: #d32f2f;
+            border-bottom: 2px solid #d32f2f;
+            font-weight: bold;
+        }
+
+    .review-card {
+        border-bottom: 1px solid #eee;
+        padding: 15px 0;
+    }
+
+    .review-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #6c757d;
+        font-weight: bold;
+    }
+
+    .star-yellow {
+        color: #ffc107;
+    }
+
+    .star-gray {
+        color: #e4e5e9;
+    }
+
+    @@media (max-width: 768px) {
+        .dish-img {
+            height: 140px;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-primary">@nhaHang.TenNH</h2>
+            <p class="text-muted mb-1"><i class="fas fa-map-marker-alt text-danger"></i> @nhaHang.DiaChi</p>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-warning text-dark fs-6">
+                    <i class="fas fa-star"></i> @diemTB (@luotDG đánh giá)
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="menu-tab" data-bs-toggle="tab" data-bs-target="#menu" type="button" role="tab" aria-controls="menu" aria-selected="true">
+                🍽️ Thực đơn
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="review-tab" data-bs-toggle="tab" data-bs-target="#review" type="button" role="tab" aria-controls="review" aria-selected="false">
+                ⭐ Đánh giá & Bình luận
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="myTabContent">
+
+        <div class="tab-pane fade show active" id="menu" role="tabpanel" aria-labelledby="menu-tab">
+            @if (Model == null || !Model.Any())
+            {
+                <div class="alert alert-info text-center mt-3">Hiện chưa có món ăn nào.</div>
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var m in Model)
+                    {
+                        <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4 d-flex">
+                            <div class="dish-card shadow-sm w-100">
+                                <img src="~/images/monan/@m.HinhAnh" alt="@m.TenMon" class="dish-img" onerror="this.onerror=null; this.src='/images/monan/com.png'" />
+                                <div class="dish-body">
+                                    <div>
+                                        <h5>@m.TenMon</h5>
+                                        <p class="text-truncate" title="@m.MoTa">@m.MoTa</p>
+                                    </div>
+                                    <div>
+                                        <p class="price">@String.Format("{0:N0} đ", m.Gia)</p>
+                                        <button type="button"
+                                                class="btn btn-success btn-sm w-100 mt-1 btn-add-to-cart"
+                                                data-mamon="@m.MaMon"
+                                                data-tenmon="@m.TenMon">
+                                            <i class="fas fa-cart-plus"></i> Thêm
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="tab-pane fade" id="review" role="tabpanel" aria-labelledby="review-tab">
+            <div class="card border-0 shadow-sm p-4">
+                <div class="mb-4">
+                    <h4 class="mb-1">Đánh giá từ khách hàng</h4>
+                    <small class="text-muted">Tổng cộng: @luotDG đánh giá | Điểm trung bình: <strong>@diemTB</strong>/5</small>
+                </div>
+
+                @if (danhGiaList == null || !danhGiaList.Any())
+                {
+                    <div class="text-center py-5">
+                        <img src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png" width="80" class="mb-3 opacity-50" />
+                        <p class="text-muted">Chưa có đánh giá nào cho nhà hàng này.</p>
+                    </div>
+                }
+                else
+                {
+                    foreach (var dg in danhGiaList)
+                    {
+                        <div class="review-card d-flex gap-3">
+                            <div class="review-avatar flex-shrink-0">
+                                @(string.IsNullOrEmpty(dg.TenKH) ? "?" : dg.TenKH.Substring(0, 1).ToUpper())
+                            </div>
+
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="fw-bold mb-0">@dg.TenKH</h6>
+                                    <small class="text-muted">@dg.ThoiGian.ToString("dd/MM/yyyy HH:mm")</small>
+                                </div>
+
+                                <div class="mb-2">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        if (i <= dg.SoSao)
+                                        {
+                                            <i class="fas fa-star star-yellow"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-star star-gray"></i>
+                                        }
+                                    }
+                                </div>
+
+                                <p class="mb-0 text-secondary">
+                                    @(string.IsNullOrEmpty(dg.BinhLuan) ? "Khách hàng không để lại lời bình." : dg.BinhLuan)
+                                </p>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAddNote" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ghi chú cho món ăn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modalDishName" class="fw-bold mb-2"></p>
+                <div class="mb-3">
+                    <label class="form-label">Ghi chú (tùy chọn)</label>
+                    <textarea class="form-control" id="modalDishNote" rows="3" placeholder="Ví dụ: ít cay, không hành, thêm đá..."></textarea>
+                </div>
+                <small class="text-muted">Nếu để trống, món sẽ được thêm như bình thường và có thể chỉnh sửa ghi chú trong giỏ hàng.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmAddToCart">Thêm vào giỏ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" /> 
+
+@section Scripts {
+    <script>
+        let selectedDishId = null;
+
+        $(document).on("click", ".btn-add-to-cart", function () {
+            selectedDishId = $(this).data("mamon");
+            const tenMon = $(this).data("tenmon");
+            $("#modalDishName").text(tenMon);
+            $("#modalDishNote").val("");
+            const modal = new bootstrap.Modal(document.getElementById('modalAddNote'));
+            modal.show();
+        });
+
+        $("#btnConfirmAddToCart").on("click", function () {
+            if (!selectedDishId) return;
+            const note = $("#modalDishNote").val();
+
+            $.ajax({
+                url: '@Url.Action("ThemVaoGio", "KhachHang")',
+                type: 'POST',
+                data: { id: selectedDishId, note: note },
+                success: function (res) {
+                    if (res && res.success) {
+                        if (typeof updateCartBadge === 'function') {
+                            updateCartBadge();
+                        }
+                        bootstrap.Modal.getInstance(document.getElementById('modalAddNote')).hide();
+                    } else {
+                        alert(res.message || "Không thể thêm món vào giỏ hàng.");
+                    }
+                },
+                error: function () {
+                    alert("Lỗi kết nối server. Vui lòng thử lại.");
+                }
+            });
+        });
+    </script>
+}

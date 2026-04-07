@@ -1,0 +1,338 @@
+﻿@model ĐACN.Models.TheoDoiDonHangFullViewModel
+@using System.Globalization
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Theo Dõi Đơn Hàng";
+
+    var steps = new[] { "Chờ xác nhận", "Đang lấy món", "Đang giao", "Hoàn thành" };
+    var currentStepIndex = Array.IndexOf(steps, Model.DonHang.TrangThai);
+    if (currentStepIndex == -1)
+    {
+        if (Model.DonHang.TrangThai.Contains("Hủy")) { currentStepIndex = -1; } 
+        else { currentStepIndex = 0; }
+    }
+
+    bool isTrackingActive = !string.IsNullOrEmpty(Model.DonHang.MaShipper) &&
+                            (Model.DonHang.TrangThai == "Đang lấy món" || Model.DonHang.TrangThai == "Đang giao");
+
+    double? initialLat = Model.DonHang.KhachHangLatitude.HasValue && Model.DonHang.KhachHangLatitude != 0 ? Model.DonHang.KhachHangLatitude : (double?)10.7769;
+    double? initialLng = Model.DonHang.KhachHangLongitude.HasValue && Model.DonHang.KhachHangLongitude != 0 ? Model.DonHang.KhachHangLongitude : (double?)106.7009;
+}
+
+@functions {
+    public static string GetStatusBadgeClass(string trangThai)
+    {
+        if (string.IsNullOrWhiteSpace(trangThai)) return "bg-secondary";
+        string s = trangThai.ToLower();
+        if (s.Contains("chờ") || s.Contains("xác nhận")) return "bg-warning text-dark";
+        if (s.Contains("lấy món")) return "bg-info text-white";
+        if (s.Contains("đang giao")) return "bg-primary";
+        if (s.Contains("hoàn")) return "bg-success";
+        if (s.Contains("hủy")) return "bg-danger";
+        return "bg-secondary";
+    }
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-map-marker-alt text-danger"></i> Đơn hàng #@Model.DonHang.MaDon</h2>
+        <span class="badge @GetStatusBadgeClass(Model.DonHang.TrangThai) fs-6">@Model.DonHang.TrangThai</span>
+    </div>
+
+    <div class="card p-4 mb-4 shadow-sm border-0">
+        <div class="d-flex justify-content-between align-items-center position-relative" style="height:60px;">
+            @for (int i = 0; i < steps.Length; i++)
+            {
+                var statusClass = i < currentStepIndex ? "step-complete" : i == currentStepIndex ? "step-active" : "step-upcoming";
+                <div class="step @statusClass flex-fill text-center position-relative">
+                    <div class="step-circle">
+                        @if (i < currentStepIndex)
+                        {<i class="fas fa-check"></i> }
+                        else
+                        { <span>@(i + 1)</span>}
+                    </div>
+                    <div class="step-label fw-bold mt-2">@steps[i]</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-bottom-0 pt-3">
+                    <h5 class="card-title mb-0"><i class="fas fa-shipping-fast text-primary"></i> Vị trí trực tuyến</h5>
+                </div>
+                <div class="card-body p-2 position-relative">
+                    @if (isTrackingActive)
+                    {
+                        <div id="map"></div>
+
+                        <div class="map-info-overlay">
+                            <div class="d-flex justify-content-around text-center">
+                                <div>
+                                    <small class="text-muted d-block">Khoảng cách</small>
+                                    <strong id="distance-display" class="text-primary fs-5">...</strong>
+                                </div>
+                                <div class="border-start mx-3"></div>
+                                <div>
+                                    <small class="text-muted d-block">Dự kiến đến</small>
+                                    <strong id="duration-display" class="text-danger fs-5">...</strong>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-center border-top pt-2">
+                                <span id="route-status-text" class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 bg-light rounded">
+                            <img src="~/images/other/map-placeholder.png" style="width:100px; opacity:0.5" alt="Map Placeholder" />
+                            <h5 class="mt-3 text-muted">Bản đồ chưa sẵn sàng</h5>
+                            <p class="text-muted">Vị trí Shipper sẽ hiển thị khi đơn hàng chuyển sang trạng thái <strong>Đang lấy món</strong> hoặc <strong>Đang giao</strong>.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                    <h5 class="card-title text-uppercase fs-6 text-muted mb-3">Thông tin nhận hàng</h5>
+                    <div class="mb-2">
+                        <i class="fas fa-user-circle text-secondary me-2"></i> <strong>@Model.DonHang.TenKH</strong>
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-phone text-secondary me-2"></i> <a href="tel:@Model.DonHang.Sdt" class="text-decoration-none">@Model.DonHang.Sdt</a>
+                    </div>
+                    <div class="mb-0">
+                        <i class="fas fa-map-marker-alt text-secondary me-2"></i> @Model.DonHang.DiaChi
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Chi tiết đơn hàng</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @foreach (var ct in Model.ChiTietDonHang)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="flex-grow-1">
+                                        <span class="fw-bold">@ct.SoLuong x</span> @ct.TenMon
+                                    </div>
+                                    <span class="text-muted">@ct.TongTien.ToString("N0")đ</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(ct.Note))
+                                {
+                                    <div class="mt-1">
+                                        <small class="text-muted fst-italic">
+                                            <i class="fas fa-sticky-note text-warning"></i> Ghi chú: @ct.Note
+                                        </small>
+                                    </div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+                <div class="card-footer bg-light d-flex justify-content-between fw-bold">
+                    <span>Tổng cộng:</span>
+                    <span class="text-danger fs-5">@Model.DonHang.TongTien.ToString("N0")đ</span>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <a href="@Url.Action("DonHangCuaToi", "KhachHang")" class="btn btn-outline-secondary w-100"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Stepper Styles */
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        line-height: 40px;
+        color: white;
+        margin: 0 auto;
+        position: relative;
+        z-index: 2;
+        font-weight: bold;
+        transition: all 0.3s;
+    }
+
+    .step-complete .step-circle {
+        background-color: #198754;
+    }
+    /* Success Green */
+    .step-active .step-circle {
+        background-color: #0d6efd;
+        box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.2);
+    }
+    /* Primary Blue */
+    .step-upcoming .step-circle {
+        background-color: #e9ecef;
+        color: #6c757d;
+    }
+
+    .step-label {
+        font-size: 0.85rem;
+    }
+
+    .step-active .step-label {
+        color: #0d6efd;
+    }
+
+    /* Connecting Lines */
+    .step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        width: 100%;
+        height: 3px;
+        background-color: #e9ecef;
+        z-index: 1;
+    }
+
+    .step-complete:not(:last-child)::after {
+        background-color: #198754;
+    }
+
+    /* Map Styles */
+    #map {
+        height: 450px;
+        width: 100%;
+        border-radius: 8px;
+        z-index: 1;
+    }
+
+    /* Overlay Info Box on Map */
+    .map-info-overlay {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        z-index: 1000; /* Higher than map tiles */
+        backdrop-filter: blur(5px);
+    }
+</style>
+
+@if (isTrackingActive)
+{
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-rotatedmarker/0.2.0/leaflet.rotatedMarker.min.js"></script>
+
+    <script>
+        var map, routeLine;
+        var markers = {};
+        var maDon = "@Model.DonHang.MaDon";
+        var isMapInit = false;
+
+        var iconShipper = L.icon({ iconUrl: '/images/arrows/shipper.png', iconSize: [40, 40], iconAnchor: [20, 20] }); 
+        var iconRest = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] });
+        var iconCust = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] });
+
+        function initMap() {
+            var lat = @(initialLat.Value.ToString(CultureInfo.InvariantCulture));
+            var lng = @(initialLng.Value.ToString(CultureInfo.InvariantCulture));
+            map = L.map('map').setView([lat, lng], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            markers.shipper = L.marker([0,0], {icon: iconShipper, rotationAngle: 0}).addTo(map).bindPopup("Shipper");
+            markers.restaurant = L.marker([0,0], {icon: iconRest}).addTo(map).bindPopup("<b>Nhà hàng</b><br>@Model.DonHang.TenNH");
+            markers.customer = L.marker([0,0], {icon: iconCust}).addTo(map).bindPopup("<b>Khách hàng</b><br>@Model.DonHang.DiaChi");
+
+            updateTracking();
+
+            setInterval(updateTracking, 5000);
+        }
+
+        function updateTracking() {
+            $.getJSON("/KhachHang/GetTrackingInfo?maDon=" + maDon, function(res) {
+                if(res.success) {
+                    if(res.restaurant && res.restaurant.lat != 0) {
+                        markers.restaurant.setLatLng([res.restaurant.lat, res.restaurant.lng]);
+                    }
+                    if(res.customer && res.customer.lat != 0) {
+                        markers.customer.setLatLng([res.customer.lat, res.customer.lng]);
+                    }
+
+                    if(res.shipper && res.shipper.lat != 0) {
+                        var newLatLng = [res.shipper.lat, res.shipper.lng];
+                        var oldLatLng = markers.shipper.getLatLng();
+
+                        if(oldLatLng.lat != 0 && (oldLatLng.lat != newLatLng[0] || oldLatLng.lng != newLatLng[1])) {
+                            var angle = calculateAngle(oldLatLng.lat, oldLatLng.lng, newLatLng[0], newLatLng[1]);
+                            markers.shipper.setRotationAngle(angle);
+                        }
+
+                        markers.shipper.setLatLng(newLatLng);
+
+                        drawRoute();
+                    }
+                }
+            });
+        }
+
+        function drawRoute() {
+            $.getJSON("/KhachHang/GetShipperRoute?maDon=" + maDon, function(res) {
+                if(res.success && res.route && res.route.length > 0) {
+
+                    $("#distance-display").text(res.distanceText);
+                    $("#duration-display").text(res.durationText);
+                    $("#route-status-text").text(res.statusText);
+
+                    if(routeLine) map.removeLayer(routeLine);
+
+                    var latlngs = res.route.map(function(p) { return [p.lat, p.lng]; });
+
+                    var lineColor = '#0d6efd'; // Blue (To Restaurant)
+                    if (res.routeType === "ToCustomer") {
+                        lineColor = '#198754'; // Green (To Customer)
+                    }
+
+                    routeLine = L.polyline(latlngs, {
+                        color: lineColor,
+                        weight: 6,
+                        opacity: 0.8,
+                        lineCap: 'round'
+                    }).addTo(map);
+
+                    if(!isMapInit) {
+                        map.fitBounds(routeLine.getBounds(), {padding: [50, 50]});
+                        isMapInit = true;
+                    }
+                }
+            });
+        }
+
+        function calculateAngle(lat1, lng1, lat2, lng2) {
+            var dy = lat2 - lat1;
+            var dx = Math.cos(Math.PI/180*lat1)*(lng2 - lng1);
+            var angle = Math.atan2(dy, dx);
+            var degree = angle * 180 / Math.PI;
+            return (degree + 360) % 360;
+        }
+
+        $(document).ready(function() {
+            initMap();
+        });
+    </script>
+}

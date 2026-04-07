@@ -1,0 +1,135 @@
+@model IEnumerable<ĐACN.Models.DanhGiaNhaHangDisplayViewModel>
+    @{
+    ViewBag.Title = "Phản hồi khách hàng";
+    Layout = "~/Views/Shared/_LayoutNhaHang.cshtml";
+    ViewBag.Active = "PhanHoi";
+
+    var soLuongDanhGia = ViewBag.SoLuongDanhGia ?? 0;
+    var diemTrungBinh = ViewBag.DiemTrungBinh ?? 0.0;
+    }
+
+    <div class="container-fluid">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">💬 Phản hồi khách hàng</h4>
+            </div>
+            <div class="card-body">
+                @if (TempData["Message"] != null)
+                {
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    @TempData["Message"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                }
+
+                <!-- Thống kê tổng quan -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5 class="text-muted mb-1">Điểm đánh giá trung bình</h5>
+                                <h2 class="text-primary mb-0">@diemTrungBinh.ToString("N1")</h2>
+                                <div class="d-flex justify-content-center gap-1 mt-2" style="font-size: 1.2rem;">
+                                    @{
+                                    int soSaoLamTron = (int)Math.Round(diemTrungBinh);
+                                    }
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                    if (i <= soSaoLamTron)
+                                    {
+                                    <span style="color: #ffc107;">⭐</span>
+                                    }
+                                    else
+                                    {
+                                    <span style="color: #ddd; opacity: 0.3;">⭐</span>
+                                    }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5 class="text-muted mb-1">Tổng số đánh giá</h5>
+                                <h2 class="text-primary mb-0">@soLuongDanhGia</h2>
+                                <small class="text-muted">lượt đánh giá</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                @if (Model == null || !Model.Any())
+                {
+                <div class="text-center py-5">
+                    <div style="font-size: 4rem; opacity: 0.3;">💬</div>
+                    <h5 class="text-muted mt-3">Chưa có phản hồi nào từ khách hàng</h5>
+                    <p class="text-muted">Khách hàng sẽ để lại phản hồi sau khi trải nghiệm dịch vụ của bạn.</p>
+                </div>
+                }
+                else
+                {
+                <div class="list-group">
+                    @foreach (var dg in Model)
+                    {
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-1 fw-bold">
+                                    @dg.TenKhachHang
+                                    @if (!string.IsNullOrEmpty(dg.MaDon) && dg.MaDon.StartsWith("RATE_"))
+                                    {
+                                    <span class="badge bg-info text-dark ms-2">Đánh giá tự do</span>
+                                    }
+                                    else if (!string.IsNullOrEmpty(dg.MaDon))
+                                    {
+                                    <span class="badge bg-secondary ms-2">Đơn: @dg.MaDon</span>
+                                    }
+                                </h6>
+                                <small class="text-muted">
+                                    @if (dg.ThoiGianDanhGia.HasValue)
+                                    {
+                                    @dg.ThoiGianDanhGia.Value.ToString("dd/MM/yyyy HH:mm")
+                                    }
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-1" style="font-size: 1.1rem;">
+                                @if (dg.Diem.HasValue)
+                                {
+                                for (int i = 1; i <= 5; i++)
+                                {
+                                if (i <= dg.Diem.Value)
+                                {
+                                <span style="color: #ffc107;">⭐</span>
+                                }
+                                else
+                                {
+                                <span style="color: #ddd; opacity: 0.3;">⭐</span>
+                                }
+                                }
+                                <span class="ms-2 fw-bold text-primary">@dg.Diem.Value/5</span>
+                                }
+                                else
+                                {
+                                <span class="text-muted">Chưa có điểm</span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(dg.NhanXet))
+                        {
+                        <p class="mb-0 mt-2 text-secondary">@dg.NhanXet</p>
+                        }
+                        else
+                        {
+                        <p class="mb-0 mt-2 text-muted fst-italic">Khách hàng không để lại bình luận</p>
+                        }
+                    </div>
+                    }
+                </div>
+                }
+            </div>
+        </div>
+    </div>

@@ -1,0 +1,157 @@
+﻿@model ĐACN.NhaHang
+
+@{
+    ViewBag.Title = "Thông tin cửa hàng";
+    ViewBag.Active = "ThongTin";
+    Layout = "~/Views/Shared/_LayoutNhaHang.cshtml";
+    bool isEditMode = ViewBag.EditMode == true;
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-primary mb-0">Thông tin cửa hàng</h4>
+        @if (!isEditMode)
+        {
+            <a href="@Url.Action("ThongTinCuaHang", "NhaHang", new { edit = true })" class="btn btn-danger">
+                <i class="bi bi-pencil-square"></i> Thay đổi
+            </a>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(ViewBag.Error))
+    {
+        <div class="alert alert-danger">@ViewBag.Error</div>
+    }
+    @if (!string.IsNullOrEmpty(ViewBag.Success))
+    {
+        <div class="alert alert-success">@ViewBag.Success</div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            @if (isEditMode)
+            {
+                using (Html.BeginForm("CapNhatThongTinCuaHang", "NhaHang", FormMethod.Post, new { enctype = "multipart/form-data" }))
+                {
+                    <div class="card shadow-sm border-0 p-4">
+                        <h5 class="mb-3 text-secondary">Thay đổi thông tin</h5>
+
+                        <input type="hidden" name="MaNH" value="@Model.MaNH" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Tên quán</label>
+                            <input type="text" class="form-control" name="TenNH" value="@Model.TenNH" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Địa chỉ</label>
+                            <input type="text" class="form-control" name="DiaChi" value="@Model.DiaChi" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Số điện thoại</label>
+                            <input type="text" class="form-control" name="SDT" value="@Model.SDT" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Mô tả</label>
+                            <textarea class="form-control" name="MoTa" rows="3">@Model.MoTa</textarea>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h5 class="mb-3 text-secondary">Đổi mật khẩu</h5>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Mật khẩu cũ</label>
+                                <input type="password" class="form-control" name="MatKhauCu" placeholder="Để trống nếu không đổi" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Mật khẩu mới</label>
+                                <input type="password" class="form-control" name="MatKhauMoi" placeholder="Để trống nếu không đổi" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Xác nhận mật khẩu</label>
+                                <input type="password" class="form-control" name="XacNhanMatKhau" placeholder="Để trống nếu không đổi" />
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <a href="@Url.Action("ThongTinCuaHang", "NhaHang")" class="btn btn-secondary px-4 me-2">
+                                <i class="bi bi-x-circle"></i> Hủy
+                            </a>
+                            <button type="submit" class="btn btn-danger px-4">
+                                <i class="bi bi-save"></i> Lưu thay đổi
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="card shadow-sm border-0 p-4">
+                    <h5 class="mb-3 text-secondary">Thông tin cửa hàng</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-muted">Tên quán</label>
+                        <div class="form-control-plaintext border-bottom pb-2">@Model.TenNH</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-muted">Địa chỉ</label>
+                        <div class="form-control-plaintext border-bottom pb-2">@Model.DiaChi</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-muted">Số điện thoại</label>
+                        <div class="form-control-plaintext border-bottom pb-2">@Model.SDT</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-muted">Mô tả</label>
+                        <div class="form-control-plaintext border-bottom pb-2">@(string.IsNullOrEmpty(Model.MoTa) ? "Chưa có mô tả" : Model.MoTa)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-muted">Trạng thái</label>
+                        <div class="form-control-plaintext border-bottom pb-2">
+                            <span class="badge @(Model.TrangThai == "Đang hoạt động" ? "bg-success" : "bg-secondary")">@Model.TrangThai</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 p-3 text-center">
+                <h6 class="fw-semibold mb-3">Ảnh đại diện</h6>
+                <img src="@(string.IsNullOrEmpty(Model.HinhAnh) ? Url.Content("~/images/nhahang/comtam_saigon.jpg") : Url.Content("~/images/nhahang/" + Model.HinhAnh))"
+                     alt="Ảnh đại diện"
+                     class="rounded-circle border mb-3"
+                     style="width:160px;height:160px;object-fit:cover;" />
+
+                @if (isEditMode)
+                {
+                    using (Html.BeginForm("TaiLenAnhCuaHang", "NhaHang", FormMethod.Post, new { enctype = "multipart/form-data" }))
+                    {
+                        <input type="hidden" name="MaNH" value="@Model.MaNH" />
+                        <input type="file" name="HinhAnhMoi" accept=".jpg,.jpeg,.png,.gif" class="form-control mb-2" required />
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-upload"></i> Tải lên ảnh
+                        </button>
+                    }
+
+                    <p class="text-muted mt-2 small">
+                        Chỉ hỗ trợ định dạng JPG, PNG, GIF. Dung lượng tối đa 5MB.
+                    </p>
+                }
+                else
+                {
+                    <p class="text-muted mt-2 small">
+                        Nhấn "Thay đổi" để cập nhật ảnh đại diện
+                    </p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

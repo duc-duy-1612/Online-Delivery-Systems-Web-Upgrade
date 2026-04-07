@@ -1,0 +1,129 @@
+@* Container cho thông báo *@
+<div id="thongBaoContainer" style="position: fixed; top: 70px; right: 20px; z-index: 1050; max-width: 400px;">
+    <!-- Thông báo sẽ được thêm vào đây bằng JavaScript -->
+</div>
+
+<style>
+    .thong-bao-item {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 15px;
+        margin-bottom: 10px;
+        animation: slideInRight 0.3s ease-out;
+        border-left: 4px solid #007bff;
+    }
+
+    .thong-bao-item.nhan-don {
+        border-left-color: #28a745;
+    }
+
+    .thong-bao-item.dang-giao {
+        border-left-color: #ffc107;
+    }
+
+    .thong-bao-item.huy-don {
+        border-left-color: #dc3545;
+    }
+
+    @@keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .thong-bao-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .thong-bao-title {
+        font-weight: bold;
+        font-size: 14px;
+        margin: 0;
+    }
+
+    .thong-bao-close {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #666;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .thong-bao-close:hover {
+        color: #000;
+    }
+
+    .thong-bao-content {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .thong-bao-time {
+        font-size: 11px;
+        color: #999;
+    }
+</style>
+
+<script>
+    function hienThiThongBao(thongBaos) {
+        var container = $('#thongBaoContainer');
+        container.empty();
+
+        if (!thongBaos || thongBaos.length === 0) {
+            return;
+        }
+
+        thongBaos.forEach(function (tb) {
+            var html = '<div class="thong-bao-item ' + tb.loai + '" data-ma-don="' + tb.maDon + '">';
+            html += '<div class="thong-bao-header">';
+            
+            var title = '';
+            var icon = '';
+            if (tb.loai === 'nhanDon') {
+                title = 'Shipper đã nhận đơn';
+                icon = '✓';
+            } else if (tb.loai === 'dangGiao') {
+                title = 'Đơn hàng đang giao';
+                icon = '🚚';
+            } else if (tb.loai === 'huyDon') {
+                title = 'Shipper đã hủy đơn';
+                icon = '✗';
+            }
+            
+            html += '<span class="thong-bao-title">' + icon + ' ' + title + '</span>';
+            html += '<button type="button" class="thong-bao-close" onclick="$(this).closest(\'.thong-bao-item\').fadeOut(300, function(){$(this).remove();});">&times;</button>';
+            html += '</div>';
+            html += '<div class="thong-bao-content">';
+            html += 'Đơn hàng: <strong>' + tb.maDon + '</strong><br>';
+            html += 'Shipper: <strong>' + tb.tenShipper + '</strong>';
+            html += '</div>';
+            html += '<div class="thong-bao-time">' + tb.thoiGian + '</div>';
+            html += '</div>';
+
+            container.append(html);
+
+            // Tự động ẩn sau 10 giây
+            setTimeout(function () {
+                container.find('[data-ma-don="' + tb.maDon + '"]').fadeOut(300, function () {
+                    $(this).remove();
+                });
+            }, 10000);
+        });
+    }
+</script>

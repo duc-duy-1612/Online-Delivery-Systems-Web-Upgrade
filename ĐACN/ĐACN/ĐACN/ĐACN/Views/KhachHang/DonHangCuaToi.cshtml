@@ -1,0 +1,249 @@
+﻿@model ĐACN.Models.DonHangTongHopViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Đơn hàng của tôi";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4 text-center text-primary fw-bold">Đơn hàng của tôi</h2>
+
+    <ul class="nav nav-tabs" id="orderTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="processing-tab" data-bs-toggle="tab" data-bs-target="#processing" type="button">Đang xử lý</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button">Lịch sử đơn hàng</button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3">
+        <div class="tab-pane fade show active" id="processing">
+            @* FIX LỖI: Kiểm tra Model có null không trước khi kiểm tra dữ liệu con *@
+            @if (Model == null || Model.DonHangDangXuLy == null || !Model.DonHangDangXuLy.Any())
+            {
+                <div class="alert alert-info text-center mt-3">Không có đơn hàng nào đang được xử lý.</div>
+            }
+            else
+            {
+                <table class="table table-bordered text-center align-middle">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Thời gian đặt</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th>Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.DonHangDangXuLy)
+                        {
+                            <tr>
+                                <td>@item.MaDon</td>
+                                <td>@(item.ThoiGianDat?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                                <td>@String.Format("{0:N0}₫", item.TongTien)</td>
+                                <td>
+                                    @if (item.TrangThai == "Chờ xác nhận")
+                                    {
+                                        <span class="badge bg-secondary">@item.TrangThai</span>
+                                    }
+                                    else if (item.TrangThai == "Đang lấy món")
+                                    {
+                                        <span class="badge bg-info text-dark">@item.TrangThai</span>
+                                    }
+                                    else if (item.TrangThai == "Đang giao")
+                                    {
+                                        <span class="badge bg-warning text-dark">@item.TrangThai</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">@item.TrangThai</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-info" href="@Url.Action("TheoDoiDonHang", "KhachHang", new { maDon = item.MaDon })">
+                                        Xem
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <div class="tab-pane fade" id="history">
+            @* FIX LỖI: Kiểm tra Model có null không trước *@
+            @if (Model == null || Model.LichSuDonHang == null || !Model.LichSuDonHang.Any())
+            {
+                <div class="alert alert-info text-center mt-3">Bạn chưa có đơn hàng nào trong lịch sử.</div>
+            }
+            else
+            {
+                <table class="table table-bordered text-center align-middle">
+                    <thead class="table-success">
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Thời gian đặt</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 200px;">Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.LichSuDonHang)
+                        {
+                            <tr>
+                                <td>@item.MaDon</td>
+                                <td>@(item.ThoiGianDat?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                                <td>@String.Format("{0:N0}₫", item.TongTien)</td>
+                                <td>
+                                    @if (item.TrangThai == "Hoàn thành")
+                                    {
+                                        <span class="badge bg-success">@item.TrangThai</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@item.TrangThai</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <a class="btn btn-sm btn-outline-info" href="@Url.Action("TheoDoiDonHang", "KhachHang", new { maDon = item.MaDon })">
+                                            Xem
+                                        </a>
+
+                                        @if (item.TrangThai == "Hoàn thành")
+                                        {
+                                            <button class="btn btn-sm btn-warning text-dark" onclick="moDanhGiaNhaHang('@item.MaDon')">
+                                                <i class="fa fa-star"></i> Đánh giá
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    function moDanhGiaNhaHang(maDon) {
+        $.getJSON('/KhachHang/LayThongTinDanhGiaNhaHang?maDon=' + maDon, function(response) {
+            if (response.success && response.danhGia) {
+                var danhGia = response.danhGia;
+                
+                $('#ratingNHMaDon').val(danhGia.maDon);
+                $('#ratingNHMaNH').val(danhGia.maNH);
+                $('#ratingNHMaDonDisplay').text(danhGia.maDon);
+                $('#ratingNHTenNhaHang').text(danhGia.tenNhaHang);
+                $('#ratingNHThoiGian').text(danhGia.thoiGian);
+                
+                if (danhGia.soSaoCu) {
+                    $('#ratingNHSoSao').val(danhGia.soSaoCu);
+                    $('#ratingNHSoSaoDisplay').text(danhGia.soSaoCu);
+                    
+                    if (typeof currentRatingNH !== 'undefined') {
+                        currentRatingNH = danhGia.soSaoCu;
+                    }
+                    $('.rating-nh-star').each(function () {
+                        var rating = $(this).data('rating');
+                        if (rating <= danhGia.soSaoCu) {
+                            $(this).addClass('active');
+                            $(this).css('filter', 'none');
+                            $(this).css('opacity', '1');
+                        } else {
+                            $(this).removeClass('active');
+                            $(this).css('filter', 'grayscale(100%)');
+                            $(this).css('opacity', '0.3');
+                        }
+                    });
+                    $('#btnLuuDanhGiaNH').prop('disabled', false);
+                } else {
+                    if (typeof currentRatingNH !== 'undefined') {
+                        currentRatingNH = 0;
+                    }
+                    $('#ratingNHSoSao').val(0);
+                    $('#ratingNHSoSaoDisplay').text('0');
+                    $('.rating-nh-star').removeClass('active').css('filter', 'grayscale(100%)').css('opacity', '0.3');
+                    $('#btnLuuDanhGiaNH').prop('disabled', true);
+                }
+                
+                if (danhGia.binhLuanCu) {
+                    $('#ratingNHBinhLuan').val(danhGia.binhLuanCu);
+                } else {
+                    $('#ratingNHBinhLuan').val('');
+                }
+                
+                $('#danhGiaNhaHangModal').removeData('already-processed');
+                $('#danhGiaNhaHangModal').data('from-history-page', true); // Đánh dấu là từ lịch sử
+                $('#danhGiaNhaHangModal').removeData('saved-success');
+                if (typeof isProcessingNH !== 'undefined') {
+                    isProcessingNH = false;
+                }
+                
+                $('#btnLuuDanhGiaNH').off('click').on('click', function() {
+                    var maDon = $('#ratingNHMaDon').val();
+                    var maNH = $('#ratingNHMaNH').val();
+                    var soSao = parseInt($('#ratingNHSoSao').val());
+                    var binhLuan = $('#ratingNHBinhLuan').val();
+
+                    if (soSao < 1 || soSao > 5) {
+                        alert('Vui lòng chọn số sao từ 1 đến 5!');
+                        return;
+                    }
+
+                    var token = $('input[name="__RequestVerificationToken"]').val();
+
+                    $.ajax({
+                        url: '/KhachHang/LuuDanhGiaNhaHang',
+                        type: 'POST',
+                        data: {
+                            maDon: maDon,
+                            maNH: maNH,
+                            soSao: soSao,
+                            binhLuan: binhLuan,
+                            __RequestVerificationToken: token
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                $('#danhGiaNhaHangModal').data('saved-success', true);
+                                $('#danhGiaNhaHangModal').data('already-processed', true);
+                                if (typeof isProcessingNH !== 'undefined') {
+                                    isProcessingNH = true;
+                                }
+                                
+                                var modal = bootstrap.Modal.getInstance(document.getElementById('danhGiaNhaHangModal'));
+                                if (modal) modal.hide();
+                            } else {
+                                alert(response.message || 'Có lỗi xảy ra khi lưu đánh giá!');
+                            }
+                        },
+                        error: function () {
+                            alert('Có lỗi xảy ra khi gửi đánh giá. Vui lòng thử lại!');
+                        }
+                    });
+                });
+                
+                var modal = new bootstrap.Modal(document.getElementById('danhGiaNhaHangModal'));
+                modal.show();
+            } else {
+                alert('Không thể tải thông tin đơn hàng!');
+            }
+        }).fail(function() {
+            alert('Có lỗi xảy ra khi tải thông tin!');
+        });
+    }
+    
+    $(document).ready(function() {
+        $('#danhGiaNhaHangModal').on('hidden.bs.modal', function() {
+            var isFromHistory = $(this).data('from-history-page');
+            if (isFromHistory && $(this).data('saved-success')) {
+                location.reload();
+            }
+        });
+    });
+</script>

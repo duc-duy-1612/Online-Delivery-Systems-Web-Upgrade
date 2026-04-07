@@ -1,0 +1,163 @@
+﻿@model List<ĐACN.LoaiMonAn>
+
+@{
+    ViewBag.Title = "Quản Lý Danh Mục Món Ăn";
+    ViewBag.Active = "DanhMuc";
+    Layout = "~/Views/Shared/_LayoutNhaHang.cshtml";
+
+
+    if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+}
+
+<div class="row">
+</div>
+
+---
+
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-plus-circle-fill"></i> Thêm Danh Mục Mới</h5>
+            </div>
+            <div class="card-body">
+
+                <form id="categoryForm" action="@Url.Action("ThemDanhMuc", "NhaHang")" method="post" enctype="multipart/form-data">
+
+
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label for="MaLoai" class="form-label">Mã Danh Mục:</label>
+
+                        <input type="text" class="form-control" id="MaLoai" name="MaLoai" list="loaiMonAnList" required maxlength="20">
+                    </div>
+
+
+                    <datalist id="loaiMonAnList">
+                        @if (ViewBag.AllLoaiMonAn != null)
+                        {
+
+                            foreach (ĐACN.LoaiMonAn loai in ViewBag.AllLoaiMonAn)
+                            {
+                                <option value="@loai.MaLoai">@loai.TenLoai</option>
+                            }
+                        }
+                    </datalist>
+
+                    <div class="mb-3">
+                        <label for="TenLoai" class="form-label">Tên Danh Mục:</label>
+
+                        <input type="text" class="form-control" id="TenLoai" name="TenLoai" required maxlength="100">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="HinhAnh" class="form-label">Ảnh Đại Diện (Icon):</label>
+
+                        <input type="file" class="form-control" id="HinhAnh" name="HinhAnh" accept="image/*">
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100"><i class="bi bi-floppy"></i> Lưu Danh Mục</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Danh Sách Các Loại Món Ăn</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px;">Ảnh</th>
+                                <th>Mã Loại</th>
+                                <th>Tên Loại</th>
+                                <th class="text-center" style="width: 150px;">Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model != null)
+                            {
+                                foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td>
+
+                                            @if (!string.IsNullOrEmpty(item.HinhAnh))
+                                            {
+                                                <img src="@Url.Content("~/images/danhmuc/" + item.HinhAnh)" alt="@item.TenLoai" class="rounded" style="width: 40px; height: 40px; object-fit: cover;" />
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Chưa có ảnh</span>
+                                            }
+                                        </td>
+                                        <td>@item.MaLoai</td>
+                                        <td>@item.TenLoai</td>
+                                        <td class="text-center">
+
+                                            <button type="button" class="btn btn-sm btn-primary me-2" onclick="editCategory('@item.MaLoai', '@item.TenLoai')">
+                                                <i class="bi bi-pencil-square"></i> Sửa
+                                            </button>
+
+                                            <a href="@Url.Action("XoaDanhMuc", "NhaHang", new { id = item.MaLoai })" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc chắn muốn xóa danh mục @item.TenLoai không?');">
+                                                <i class="bi bi-trash"></i> Xóa
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">Chưa có danh mục nào được thêm.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function editCategory(maLoai, tenLoai) {
+
+            document.querySelector('#categoryForm .card-header h5').innerHTML = '<i class="bi bi-pencil-square"></i> Chỉnh Sửa Danh Mục: ' + maLoai;
+
+
+            document.getElementById('categoryForm').action = '@Url.Action("SuaDanhMuc", "NhaHang")';
+
+
+            document.getElementById('MaLoai').value = maLoai;
+            document.getElementById('TenLoai').value = tenLoai;
+
+
+            document.getElementById('MaLoai').readOnly = true;
+
+
+            document.getElementById('HinhAnh').style.display = 'none';
+            document.querySelector('label[for="HinhAnh"]').textContent = 'Ảnh Đại Diện (Chỉ thay đổi nếu cần):';
+
+
+
+            document.querySelector('#categoryForm button[type="submit"]').innerHTML = '<i class="bi bi-arrow-clockwise"></i> Cập Nhật';
+
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+}

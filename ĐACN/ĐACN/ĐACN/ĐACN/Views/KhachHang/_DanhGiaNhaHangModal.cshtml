@@ -1,0 +1,453 @@
+<div class="modal fade" id="danhGiaNhaHangModal" tabindex="-1" aria-labelledby="danhGiaNhaHangModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="danhGiaNhaHangModalLabel">
+                    ⭐ Đánh giá Nhà hàng
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="ratingNHMaDon" />
+                <input type="hidden" id="ratingNHMaNH" />
+
+                <div class="text-center mb-3">
+                    <p class="mb-2">Đơn hàng: <strong id="ratingNHMaDonDisplay"></strong></p>
+                    <p class="text-muted">Nhà hàng: <strong id="ratingNHTenNhaHang"></strong></p>
+                    <p class="text-muted small">Thời gian đặt: <span id="ratingNHThoiGian"></span></p>
+                </div>
+
+                <hr />
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Đánh giá bằng sao: <span id="ratingNHSoSaoDisplay">0</span>/5</label>
+                    <div class="d-flex justify-content-center gap-2" style="font-size: 2rem;">
+                        <span class="rating-nh-star" data-rating="1" style="cursor: pointer; color: #ddd;">⭐</span>
+                        <span class="rating-nh-star" data-rating="2" style="cursor: pointer; color: #ddd;">⭐</span>
+                        <span class="rating-nh-star" data-rating="3" style="cursor: pointer; color: #ddd;">⭐</span>
+                        <span class="rating-nh-star" data-rating="4" style="cursor: pointer; color: #ddd;">⭐</span>
+                        <span class="rating-nh-star" data-rating="5" style="cursor: pointer; color: #ddd;">⭐</span>
+                    </div>
+                    <input type="hidden" id="ratingNHSoSao" value="0" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="ratingNHHinhAnh" class="form-label fw-bold">Tải ảnh (tùy chọn):</label>
+                    <input type="file" class="form-control" id="ratingNHHinhAnh" accept="image/*" />
+                    <small class="text-muted">Chấp nhận mọi định dạng ảnh</small>
+                    <div id="ratingNHPreviewContainer" class="mt-2" style="display: none;">
+                        <img id="ratingNHPreview" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px; max-height: 200px; object-fit: contain;" />
+                        <button type="button" class="btn btn-sm btn-danger ms-2" id="btnXoaAnhNH">Xóa ảnh</button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="ratingNHBinhLuan" class="form-label fw-bold">Bình luận (tùy chọn):</label>
+                    <textarea class="form-control" id="ratingNHBinhLuan" rows="3" placeholder="Chia sẻ trải nghiệm của bạn về nhà hàng..."></textarea>
+                </div>
+
+                <div class="alert alert-info small">
+                    ℹ️ Đánh giá của bạn giúp nhà hàng cải thiện dịch vụ và giúp khách hàng khác lựa chọn tốt hơn.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btnBoQuaDanhGiaNH">
+                    ✗ Bỏ qua
+                </button>
+                <button type="button" class="btn btn-warning" id="btnLuuDanhGiaNH" disabled>
+                    ✓ Gửi đánh giá
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .rating-nh-star:hover {
+        color: #ffc107 !important;
+        transform: scale(1.2);
+        transition: all 0.2s;
+    }
+
+    .rating-nh-star.active {
+        color: #ffc107 !important;
+    }
+
+    #btnLuuDanhGiaNH:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+
+<script>
+
+    (function () {
+        function initNhaHangRating() {
+            var currentRatingNH = 0;
+            var isProcessingNH = false;
+
+
+            $(document).on('click', '.rating-nh-star', function () {
+                var rating = $(this).data('rating');
+                currentRatingNH = rating;
+                $('#ratingNHSoSao').val(rating);
+                $('#ratingNHSoSaoDisplay').text(rating);
+
+
+                $('.rating-nh-star').each(function () {
+                    if ($(this).data('rating') <= rating) {
+                        $(this).addClass('active');
+                        $(this).css('filter', 'none');
+                        $(this).css('opacity', '1');
+                    } else {
+                        $(this).removeClass('active');
+                        $(this).css('filter', 'grayscale(100%)');
+                        $(this).css('opacity', '0.3');
+                    }
+                });
+
+
+                if (rating > 0) {
+                    $('#btnLuuDanhGiaNH').prop('disabled', false);
+                }
+            });
+
+
+            $(document).on('mouseenter', '.rating-nh-star', function () {
+                var rating = $(this).data('rating');
+                $('.rating-nh-star').each(function () {
+                    if ($(this).data('rating') <= rating) {
+                        $(this).css('filter', 'none');
+                        $(this).css('opacity', '1');
+                    }
+                });
+            });
+
+            $(document).on('mouseleave', '.rating-nh-star', function () {
+                $('.rating-nh-star').each(function () {
+                    var rating = $(this).data('rating');
+                    if (rating <= currentRatingNH) {
+                        $(this).css('filter', 'none');
+                        $(this).css('opacity', '1');
+                    } else {
+                        $(this).css('filter', 'grayscale(100%)');
+                        $(this).css('opacity', '0.3');
+                    }
+                });
+            });
+
+
+            window.hienThiModalDanhGiaNhaHang = function (data) {
+                $('#ratingNHMaDon').val(data.maDon);
+                $('#ratingNHMaNH').val(data.maNH);
+                $('#ratingNHMaDonDisplay').text(data.maDon);
+                $('#ratingNHTenNhaHang').text(data.tenNhaHang);
+                $('#ratingNHThoiGian').text(data.thoiGian);
+
+
+                currentRatingNH = 0;
+                $('#ratingNHSoSao').val(0);
+                $('#ratingNHSoSaoDisplay').text('0');
+                $('#ratingNHBinhLuan').val('');
+                $('#ratingNHHinhAnh').val('');
+                $('#ratingNHPreviewContainer').hide();
+                $('#ratingNHPreview').attr('src', '');
+                $('.rating-nh-star').removeClass('active').css('filter', 'grayscale(100%)').css('opacity', '0.3');
+                $('#btnLuuDanhGiaNH').prop('disabled', true);
+
+
+                if (data.soSaoCu) {
+                    currentRatingNH = data.soSaoCu;
+                    $('#ratingNHSoSao').val(data.soSaoCu);
+                    $('#ratingNHSoSaoDisplay').text(data.soSaoCu);
+                    $('.rating-nh-star').each(function () {
+                        var rating = $(this).data('rating');
+                        if (rating <= data.soSaoCu) {
+                            $(this).addClass('active');
+                            $(this).css('filter', 'none');
+                            $(this).css('opacity', '1');
+                        } else {
+                            $(this).removeClass('active');
+                            $(this).css('filter', 'grayscale(100%)');
+                            $(this).css('opacity', '0.3');
+                        }
+                    });
+                    $('#btnLuuDanhGiaNH').prop('disabled', false);
+                }
+
+                if (data.binhLuanCu) {
+                    $('#ratingNHBinhLuan').val(data.binhLuanCu);
+                }
+
+
+                if (data.hinhAnhCu) {
+                    $('#ratingNHPreview').attr('src', '/images/danhgia/' + data.hinhAnhCu);
+                    $('#ratingNHPreviewContainer').show();
+                } else {
+                    $('#ratingNHPreviewContainer').hide();
+                }
+
+
+                $('#danhGiaNhaHangModal').removeData('already-processed');
+                $('#danhGiaNhaHangModal').removeData('from-history-page');
+                $('#danhGiaNhaHangModal').removeData('saved-success');
+                isProcessingNH = false;
+
+                var modal = new bootstrap.Modal(document.getElementById('danhGiaNhaHangModal'));
+                modal.show();
+            };
+
+
+            $(document).on('change', '#ratingNHHinhAnh', function () {
+                var file = this.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        $('#ratingNHPreview').attr('src', e.target.result);
+                        $('#ratingNHPreviewContainer').show();
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $('#ratingNHPreviewContainer').hide();
+                }
+            });
+
+
+            $(document).on('click', '#btnXoaAnhNH', function () {
+                $('#ratingNHHinhAnh').val('');
+                $('#ratingNHPreview').attr('src', '');
+                $('#ratingNHPreviewContainer').hide();
+            });
+
+
+            $(document).on('click', '#btnLuuDanhGiaNH', function () {
+                var maDon = $('#ratingNHMaDon').val();
+                var maNH = $('#ratingNHMaNH').val();
+                var soSao = parseInt($('#ratingNHSoSao').val());
+                var binhLuan = $('#ratingNHBinhLuan').val();
+
+                if (soSao < 1 || soSao > 5) {
+                    alert('Vui lòng chọn số sao từ 1 đến 5!');
+                    return;
+                }
+
+                var token = $('input[name="__RequestVerificationToken"]').val();
+                var isFromHistory = $('#danhGiaNhaHangModal').data('from-history-page');
+
+
+                var formData = new FormData();
+                formData.append('maDon', maDon);
+                formData.append('maNH', maNH);
+                formData.append('soSao', soSao);
+                formData.append('binhLuan', binhLuan);
+                formData.append('__RequestVerificationToken', token);
+
+                var fileInput = $('#ratingNHHinhAnh')[0];
+                if (fileInput.files.length > 0) {
+                    formData.append('hinhAnhFile', fileInput.files[0]);
+                }
+
+                $.ajax({
+                    url: '/KhachHang/LuuDanhGiaNhaHang',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#danhGiaNhaHangModal').data('already-processed', true);
+                            isProcessingNH = true;
+
+                            if (isFromHistory) {
+                                $('#danhGiaNhaHangModal').data('saved-success', true);
+                            }
+
+                            var modalElement = document.getElementById('danhGiaNhaHangModal');
+                            var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                            if (modalInstance) {
+                                modalInstance.hide();
+                            } else {
+                                var newModal = new bootstrap.Modal(modalElement);
+                                newModal.hide();
+                            }
+
+                            setTimeout(function () {
+                                $('.modal-backdrop').remove();
+                                $('body').removeClass('modal-open');
+                                $('body').css('overflow', '');
+                                $('body').css('padding-right', '');
+                            }, 300);
+
+                            if (isFromHistory) {
+
+                                setTimeout(function () {
+                                    location.reload();
+                                }, 500);
+                            } else {
+
+                                setTimeout(function () {
+                                    isProcessingNH = false;
+                                    if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                                        window.kiemTraVaHienThiDonTiepTheo();
+                                    }
+                                }, 1000);
+                            }
+                        } else {
+                            alert(response.message || 'Có lỗi xảy ra khi lưu đánh giá!');
+                        }
+                    },
+                    error: function () {
+                        alert('Có lỗi xảy ra khi gửi đánh giá. Vui lòng thử lại!');
+                    }
+                });
+            });
+
+
+            $(document).on('click', '#btnBoQuaDanhGiaNH', function () {
+                var maDon = $('#ratingNHMaDon').val();
+
+                if (!maDon) {
+                    var modalElement = document.getElementById('danhGiaNhaHangModal');
+                    var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                    setTimeout(function () {
+                        $('.modal-backdrop').remove();
+                        $('body').removeClass('modal-open');
+                        $('body').css('overflow', '');
+                        $('body').css('padding-right', '');
+                    }, 300);
+                    return;
+                }
+
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '/KhachHang/BoQuaDanhGiaNhaHang',
+                    type: 'POST',
+                    data: {
+                        maDon: maDon,
+                        __RequestVerificationToken: token
+                    },
+                    success: function (response) {
+                        $('#danhGiaNhaHangModal').data('already-processed', true);
+                        isProcessingNH = true;
+
+                        var modalElement = document.getElementById('danhGiaNhaHangModal');
+                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        } else {
+                            var newModal = new bootstrap.Modal(modalElement);
+                            newModal.hide();
+                        }
+
+                        setTimeout(function () {
+                            $('.modal-backdrop').remove();
+                            $('body').removeClass('modal-open');
+                            $('body').css('overflow', '');
+                            $('body').css('padding-right', '');
+                        }, 300);
+
+                        setTimeout(function () {
+                            isProcessingNH = false;
+                            if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                                window.kiemTraVaHienThiDonTiepTheo();
+                            }
+                        }, 1000);
+                    },
+                    error: function () {
+                        isProcessingNH = true;
+                        $('#danhGiaNhaHangModal').data('already-processed', true);
+
+                        var modalElement = document.getElementById('danhGiaNhaHangModal');
+                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        } else {
+                            var newModal = new bootstrap.Modal(modalElement);
+                            newModal.hide();
+                        }
+
+                        setTimeout(function () {
+                            $('.modal-backdrop').remove();
+                            $('body').removeClass('modal-open');
+                            $('body').css('overflow', '');
+                            $('body').css('padding-right', '');
+                        }, 300);
+
+                        setTimeout(function () {
+                            isProcessingNH = false;
+                            if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                                window.kiemTraVaHienThiDonTiepTheo();
+                            }
+                        }, 1000);
+                    }
+                });
+            });
+
+
+            $('#danhGiaNhaHangModal').on('hidden.bs.modal', function () {
+
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open');
+                $('body').css('overflow', '');
+                $('body').css('padding-right', '');
+
+                var maDon = $('#ratingNHMaDon').val();
+                var isFromHistory = $(this).data('from-history-page');
+
+
+                if (isFromHistory && $(this).data('saved-success')) {
+                    location.reload();
+                    return;
+                }
+
+
+                if (maDon && !isProcessingNH && !$('#danhGiaNhaHangModal').data('already-processed')) {
+                    $('#danhGiaNhaHangModal').data('already-processed', true);
+                    isProcessingNH = true;
+
+                    var token = $('input[name="__RequestVerificationToken"]').val();
+                    $.ajax({
+                        url: '/KhachHang/BoQuaDanhGiaNhaHang',
+                        type: 'POST',
+                        data: {
+                            maDon: maDon,
+                            __RequestVerificationToken: token
+                        },
+                        success: function () {
+                            isProcessingNH = false;
+                            setTimeout(function () {
+                                if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                                    window.kiemTraVaHienThiDonTiepTheo();
+                                }
+                            }, 1000);
+                        },
+                        error: function () {
+                            isProcessingNH = false;
+                            setTimeout(function () {
+                                if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                                    window.kiemTraVaHienThiDonTiepTheo();
+                                }
+                            }, 1000);
+                        }
+                    });
+                }
+            });
+        }
+
+
+        if (typeof jQuery !== 'undefined') {
+            $(document).ready(initNhaHangRating);
+        } else {
+            var checkJQuery = setInterval(function () {
+                if (typeof jQuery !== 'undefined') {
+                    clearInterval(checkJQuery);
+                    $(document).ready(initNhaHangRating);
+                }
+            }, 100);
+        }
+    })();
+</script>

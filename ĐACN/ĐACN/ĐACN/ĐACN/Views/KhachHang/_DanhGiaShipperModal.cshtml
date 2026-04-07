@@ -1,0 +1,386 @@
+<div class="modal fade" id="danhGiaShipperModal" tabindex="-1" aria-labelledby="danhGiaShipperModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="danhGiaShipperModalLabel">
+                    ⭐ Đánh giá Shipper
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="ratingMaDon" />
+                <input type="hidden" id="ratingMaShipper" />
+                
+                <div class="text-center mb-3">
+                    <p class="mb-2">Đơn hàng: <strong id="ratingMaDonDisplay"></strong></p>
+                    <p class="text-muted">Shipper: <strong id="ratingTenShipper"></strong></p>
+                    <p class="text-muted small">Thời gian đặt: <span id="ratingThoiGian"></span></p>
+                </div>
+
+                <hr />
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Đánh giá bằng sao: <span id="ratingSoSaoDisplay">0</span>/5</label>
+                    <div class="d-flex justify-content-center gap-2" style="font-size: 2rem;">
+                        <span class="rating-star" data-rating="1" style="cursor: pointer; color: #ddd;">⭐</span>
+                        <span class="rating-star" data-rating="2" style="cursor: pointer; color: #ddd;">⭐</span>
+                        <span class="rating-star" data-rating="3" style="cursor: pointer; color: #ddd;">⭐</span>
+                        <span class="rating-star" data-rating="4" style="cursor: pointer; color: #ddd;">⭐</span>
+                        <span class="rating-star" data-rating="5" style="cursor: pointer; color: #ddd;">⭐</span>
+                    </div>
+                    <input type="hidden" id="ratingSoSao" value="0" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="ratingBinhLuan" class="form-label fw-bold">Bình luận (tùy chọn):</label>
+                    <textarea class="form-control" id="ratingBinhLuan" rows="3" placeholder="Chia sẻ trải nghiệm của bạn về shipper..."></textarea>
+                </div>
+
+                <div class="alert alert-info small">
+                    ℹ️ Đánh giá của bạn giúp shipper cải thiện dịch vụ và giúp khách hàng khác lựa chọn tốt hơn.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btnBoQuaDanhGia">
+                    ✗ Bỏ qua
+                </button>
+                <button type="button" class="btn btn-primary" id="btnLuuDanhGia" disabled>
+                    ✓ Gửi đánh giá
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .rating-star:hover {
+        color: #ffc107 !important;
+        transform: scale(1.2);
+        transition: all 0.2s;
+    }
+    
+    .rating-star.active {
+        color: #ffc107 !important;
+    }
+    
+    #btnLuuDanhGia:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+
+<script>
+    (function() {
+        function initShipperRating() {
+            var currentRating = 0;
+            var isProcessing = false;
+
+            $(document).on('click', '.rating-star', function () {
+                var rating = $(this).data('rating');
+                currentRating = rating;
+                $('#ratingSoSao').val(rating);
+                $('#ratingSoSaoDisplay').text(rating);
+
+                $('.rating-star').each(function () {
+                    if ($(this).data('rating') <= rating) {
+                        $(this).addClass('active');
+                        $(this).css('filter', 'none');
+                        $(this).css('opacity', '1');
+                    } else {
+                        $(this).removeClass('active');
+                        $(this).css('filter', 'grayscale(100%)');
+                        $(this).css('opacity', '0.3');
+                    }
+                });
+
+                if (rating > 0) {
+                    $('#btnLuuDanhGia').prop('disabled', false);
+                }
+            });
+
+            $(document).on('mouseenter', '.rating-star', function () {
+                var rating = $(this).data('rating');
+                $('.rating-star').each(function () {
+                    if ($(this).data('rating') <= rating) {
+                        $(this).css('filter', 'none');
+                        $(this).css('opacity', '1');
+                    }
+                });
+            });
+
+            $(document).on('mouseleave', '.rating-star', function () {
+                $('.rating-star').each(function () {
+                    var rating = $(this).data('rating');
+                    if (rating <= currentRating) {
+                        $(this).css('filter', 'none');
+                        $(this).css('opacity', '1');
+                    } else {
+                        $(this).css('filter', 'grayscale(100%)');
+                        $(this).css('opacity', '0.3');
+                    }
+                });
+            });
+
+            window.hienThiModalDanhGia = function(data) {
+                $('#ratingMaDon').val(data.maDon);
+                $('#ratingMaShipper').val(data.maShipper);
+                $('#ratingMaDonDisplay').text(data.maDon);
+                $('#ratingTenShipper').text(data.tenShipper);
+                $('#ratingThoiGian').text(data.thoiGian);
+                
+                currentRating = 0;
+                $('#ratingSoSao').val(0);
+                $('#ratingSoSaoDisplay').text('0');
+                $('#ratingBinhLuan').val('');
+                $('.rating-star').removeClass('active').css('filter', 'grayscale(100%)').css('opacity', '0.3');
+                $('#btnLuuDanhGia').prop('disabled', true);
+                
+                $('#danhGiaShipperModal').removeData('already-processed');
+                isProcessing = false;
+
+                var modal = new bootstrap.Modal(document.getElementById('danhGiaShipperModal'));
+                modal.show();
+            };
+
+            $(document).on('click', '#btnLuuDanhGia', function () {
+                var maDon = $('#ratingMaDon').val();
+                var maShipper = $('#ratingMaShipper').val();
+                var soSao = parseInt($('#ratingSoSao').val());
+                var binhLuan = $('#ratingBinhLuan').val();
+
+                if (soSao < 1 || soSao > 5) {
+                    alert('Vui lòng chọn số sao từ 1 đến 5!');
+                    return;
+                }
+
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '/KhachHang/LuuDanhGiaShipper',
+                    type: 'POST',
+                    data: {
+                        maDon: maDon,
+                        maShipper: maShipper,
+                        soSao: soSao,
+                        binhLuan: binhLuan,
+                        __RequestVerificationToken: token
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            $('#danhGiaShipperModal').data('already-processed', true);
+                            isProcessing = true;
+                            
+                            var modalElement = document.getElementById('danhGiaShipperModal');
+                            var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                            if (modalInstance) {
+                                modalInstance.hide();
+                            } else {
+                                var newModal = new bootstrap.Modal(modalElement);
+                                newModal.hide();
+                            }
+                            
+                            setTimeout(function() {
+                                $('.modal-backdrop').remove();
+                                $('body').removeClass('modal-open');
+                                $('body').css('overflow', '');
+                                $('body').css('padding-right', '');
+                            }, 300);
+                            
+                            setTimeout(function () {
+                                isProcessing = false;
+                            }, 1000);
+                        } else {
+                            alert(response.message || 'Có lỗi xảy ra khi lưu đánh giá!');
+                        }
+                    },
+                    error: function () {
+                        alert('Có lỗi xảy ra khi gửi đánh giá. Vui lòng thử lại!');
+                    }
+                });
+            });
+
+            $(document).on('click', '#btnBoQuaDanhGia', function () {
+                var maDon = $('#ratingMaDon').val();
+                
+                if (!maDon) {
+                    var modalElement = document.getElementById('danhGiaShipperModal');
+                    var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                    setTimeout(function() {
+                        $('.modal-backdrop').remove();
+                        $('body').removeClass('modal-open');
+                        $('body').css('overflow', '');
+                        $('body').css('padding-right', '');
+                    }, 300);
+                    return;
+                }
+
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '/KhachHang/BoQuaDanhGia',
+                    type: 'POST',
+                    data: {
+                        maDon: maDon,
+                        __RequestVerificationToken: token
+                    },
+                    success: function (response) {
+                        $('#danhGiaShipperModal').data('already-processed', true);
+                        isProcessing = true;
+                        
+                        var modalElement = document.getElementById('danhGiaShipperModal');
+                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        } else {
+                            var newModal = new bootstrap.Modal(modalElement);
+                            newModal.hide();
+                        }
+                        
+                        setTimeout(function() {
+                            $('.modal-backdrop').remove();
+                            $('body').removeClass('modal-open');
+                            $('body').css('overflow', '');
+                            $('body').css('padding-right', '');
+                        }, 300);
+                        
+                        setTimeout(function () {
+                            isProcessing = false;
+                        }, 1000);
+                    },
+                    error: function () {
+                        isProcessing = true;
+                        $('#danhGiaShipperModal').data('already-processed', true);
+                        
+                        var modalElement = document.getElementById('danhGiaShipperModal');
+                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        } else {
+                            var newModal = new bootstrap.Modal(modalElement);
+                            newModal.hide();
+                        }
+                        
+                        setTimeout(function() {
+                            $('.modal-backdrop').remove();
+                            $('body').removeClass('modal-open');
+                            $('body').css('overflow', '');
+                            $('body').css('padding-right', '');
+                        }, 300);
+                        
+                        setTimeout(function () {
+                            isProcessing = false;
+                            if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                                window.kiemTraVaHienThiDonTiepTheo();
+                            }
+                        }, 1000);
+                    }
+                });
+            });
+
+            $('#danhGiaShipperModal').on('hidden.bs.modal', function () {
+                // Xóa backdrop và reset body styles
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open');
+                $('body').css('overflow', '');
+                $('body').css('padding-right', '');
+                
+                var maDon = $('#ratingMaDon').val();
+                if (maDon && !isProcessing && !$('#danhGiaShipperModal').data('already-processed')) {
+                    $('#danhGiaShipperModal').data('already-processed', true);
+                    isProcessing = true;
+                    
+                    var token = $('input[name="__RequestVerificationToken"]').val();
+                    $.ajax({
+                        url: '/KhachHang/BoQuaDanhGia',
+                        type: 'POST',
+                        data: {
+                            maDon: maDon,
+                            __RequestVerificationToken: token
+                        },
+                        success: function () {
+                            isProcessing = false;
+                            var maDonVuaBoQua = $('#ratingMaDon').val();
+                            setTimeout(function () {
+                                if (typeof window.kiemTraVaHienThiDanhGiaNhaHang === 'function') {
+                                    window.kiemTraVaHienThiDanhGiaNhaHang(maDonVuaBoQua);
+                                }
+                            }, 1000);
+                        },
+                        error: function () {
+                            isProcessing = false;
+                            var maDonVuaBoQua = $('#ratingMaDon').val();
+                            setTimeout(function () {
+                                if (typeof window.kiemTraVaHienThiDanhGiaNhaHang === 'function') {
+                                    window.kiemTraVaHienThiDanhGiaNhaHang(maDonVuaBoQua);
+                                }
+                            }, 1000);
+                        }
+                    });
+                }
+            });
+
+            window.kiemTraVaHienThiDanhGiaNhaHang = function(maDon) {
+                if (!maDon) {
+                    if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                        window.kiemTraVaHienThiDonTiepTheo();
+                    }
+                    return;
+                }
+
+                $.ajax({
+                    url: '/KhachHang/LayThongTinDanhGiaNhaHang',
+                    type: 'GET',
+                    data: { maDon: maDon },
+                    success: function (response) {
+                        if (response.success && response.danhGia) {
+                            if (typeof window.hienThiModalDanhGiaNhaHang === 'function') {
+                                window.hienThiModalDanhGiaNhaHang(response.danhGia);
+                            }
+                        } else {
+                            if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                                window.kiemTraVaHienThiDonTiepTheo();
+                            }
+                        }
+                    },
+                    error: function () {
+                        console.log('Lỗi khi kiểm tra đánh giá nhà hàng');
+                        if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                            window.kiemTraVaHienThiDonTiepTheo();
+                        }
+                    }
+                });
+            };
+
+            window.kiemTraVaHienThiDonTiepTheo = function() {
+                $.ajax({
+                    url: '/KhachHang/LayDonTiepTheoCanDanhGia',
+                    type: 'GET',
+                    success: function (response) {
+                        if (response.success && response.danhGia) {
+                            if (typeof window.hienThiModalDanhGia === 'function') {
+                                window.hienThiModalDanhGia(response.danhGia);
+                            }
+                        }
+                    },
+                    error: function () {
+                        console.log('Lỗi khi kiểm tra đơn tiếp theo');
+                    }
+                });
+            };
+        }
+
+        if (typeof jQuery !== 'undefined') {
+            $(document).ready(initShipperRating);
+        } else {
+            var checkJQuery = setInterval(function() {
+                if (typeof jQuery !== 'undefined') {
+                    clearInterval(checkJQuery);
+                    $(document).ready(initShipperRating);
+                }
+            }, 100);
+        }
+    })();
+</script>

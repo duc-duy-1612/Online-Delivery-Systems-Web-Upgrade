@@ -1,0 +1,388 @@
+@model ĐACN.NhaHang
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Đánh giá nhà hàng";
+    var nhaHang = ViewBag.NhaHang as ĐACN.NhaHang;
+}
+
+<style>
+    body {
+        background: #f5f7fa;
+    }
+
+    .rating-container {
+        max-width: 600px;
+        margin: 40px auto;
+    }
+
+    .restaurant-card {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        text-align: center;
+    }
+
+        .restaurant-card h4 {
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .restaurant-card p {
+            color: #718096;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+    .rating-form {
+        background: white;
+        border-radius: 16px;
+        padding: 35px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    .rating-select-group {
+        margin-bottom: 30px;
+    }
+
+    .rating-select-label {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 12px;
+        display: block;
+        text-align: center;
+        font-size: 1.05rem;
+    }
+
+    .rating-select-wrapper {
+        max-width: 350px;
+        margin: 0 auto;
+    }
+
+    .form-select-rating {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 1rem;
+        background: #f7fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: left;
+    }
+
+        .form-select-rating:focus {
+            border-color: #4299e1;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+            outline: none;
+        }
+
+    .stars-display {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 15px;
+        min-height: 35px;
+        align-items: center;
+    }
+
+    .star-display {
+        font-size: 1.6rem;
+        transition: transform 0.2s;
+    }
+
+        .star-display.active {
+            transform: scale(1.15);
+        }
+
+    .rating-text {
+        text-align: center;
+        color: #718096;
+        font-size: 0.9rem;
+        margin-top: 8px;
+        min-height: 20px;
+        font-style: italic;
+    }
+
+    .comment-group {
+        margin-bottom: 25px;
+    }
+
+    .comment-label {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 10px;
+        display: block;
+        font-size: 1.05rem;
+    }
+
+    .comment-textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        resize: vertical;
+        transition: all 0.2s ease;
+        font-family: inherit;
+    }
+
+        .comment-textarea:focus {
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+            outline: none;
+        }
+
+    .comment-hint {
+        color: #a0aec0;
+        font-size: 0.85rem;
+        margin-top: 6px;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 30px;
+        padding-top: 25px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .btn-back {
+        padding: 11px 24px;
+        border-radius: 10px;
+        font-weight: 500;
+        border: 2px solid #e2e8f0;
+        background: white;
+        color: #4a5568;
+        transition: all 0.2s ease;
+    }
+
+        .btn-back:hover {
+            border-color: #cbd5e0;
+            background: #f7fafc;
+        }
+
+    .btn-submit {
+        padding: 11px 32px;
+        border-radius: 10px;
+        font-weight: 600;
+        background: #48bb78;
+        border: none;
+        color: white;
+        transition: all 0.2s ease;
+    }
+
+        .btn-submit:hover:not(:disabled) {
+            background: #38a169;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    .error-msg {
+        color: #e53e3e;
+        font-size: 0.85rem;
+        text-align: center;
+        margin-top: 8px;
+    }
+
+    .alert {
+        border-radius: 12px;
+    }
+</style>
+
+<div class="container">
+    <div class="rating-container">
+        @if (TempData["Msg"] != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                @TempData["Msg"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+
+        <div class="restaurant-card">
+            <h4>@nhaHang.TenNH</h4>
+            <p>📍 @nhaHang.DiaChi</p>
+        </div>
+
+
+        <div class="rating-form">
+            @using (Html.BeginForm("LuuDanhGiaNhaHang", "KhachHang", FormMethod.Post, new { id = "formDanhGia" }))
+            {
+                @Html.Hidden("maNH", nhaHang.MaNH)
+
+
+                <div class="rating-select-group">
+                    <label class="rating-select-label">Chọn số sao đánh giá</label>
+                    <div class="rating-select-wrapper">
+                        <select class="form-select-rating" name="soSao" id="soSao" required>
+                            <option value="0" selected>-- Chọn số sao --</option>
+                            <option value="1">1 sao - Rất tệ</option>
+                            <option value="2">2 sao - Tệ</option>
+                            <option value="3">3 sao - Bình thường</option>
+                            <option value="4">4 sao - Tốt</option>
+                            <option value="5">5 sao - Rất tốt</option>
+                        </select>
+                    </div>
+
+
+                    <div class="stars-display" id="starsDisplay">
+                        <span style="color: #cbd5e0; font-size: 0.9rem;">Chưa chọn</span>
+                    </div>
+                    <div class="rating-text" id="ratingText"></div>
+                    <div class="error-msg" id="ratingError" style="display: none;">
+                        ⚠️ Vui lòng chọn số sao đánh giá
+                    </div>
+                </div>
+
+
+                <div class="comment-group">
+                    <label for="binhLuan" class="comment-label">Bình luận (tùy chọn)</label>
+                    <textarea class="comment-textarea" name="binhLuan" id="binhLuan"
+                              placeholder="Chia sẻ trải nghiệm của bạn về nhà hàng này..."></textarea>
+                    <div class="comment-hint">Ý kiến của bạn sẽ giúp nhà hàng cải thiện dịch vụ tốt hơn</div>
+                </div>
+
+
+                <div class="form-actions">
+                    <a href="@Url.Action("XemMenu", "KhachHang", new { id = nhaHang.MaNH })" class="btn btn-back">
+                        ← Quay lại
+                    </a>
+                    <button type="submit" class="btn btn-submit" id="btnSubmit" disabled="disabled">
+                        Gửi đánh giá
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    var ratingDescriptions = {
+        0: "",
+        1: "Trải nghiệm rất không tốt, cần cải thiện nhiều",
+        2: "Có nhiều điểm cần cải thiện",
+        3: "Ổn, không có gì đặc biệt",
+        4: "Hài lòng với dịch vụ",
+        5: "Trải nghiệm tuyệt vời! Rất hài lòng"
+    };
+
+    function updateRatingDisplay(selectedRating) {
+        var starsDisplay = document.getElementById('starsDisplay');
+        var ratingText = document.getElementById('ratingText');
+        var btnSubmit = document.getElementById('btnSubmit');
+        var ratingError = document.getElementById('ratingError');
+
+        if (!starsDisplay || !ratingText || !btnSubmit) {
+
+            return;
+        }
+
+        if (selectedRating > 0) {
+
+            var starsHtml = '';
+            for (var i = 1; i <= 5; i++) {
+                if (i <= selectedRating) {
+                    starsHtml += '<span class="star-display active" style="color: #ffc107;">⭐</span>';
+                } else {
+                    starsHtml += '<span class="star-display" style="color: #e2e8f0;">⭐</span>';
+                }
+            }
+            starsDisplay.innerHTML = starsHtml;
+
+
+            ratingText.textContent = ratingDescriptions[selectedRating] || '';
+
+
+            if (ratingError) ratingError.style.display = 'none';
+            btnSubmit.disabled = false;
+            btnSubmit.removeAttribute('disabled');
+            btnSubmit.classList.remove('disabled');
+        } else {
+
+            starsDisplay.innerHTML = '<span style="color: #cbd5e0; font-size: 0.9rem;">Chưa chọn</span>';
+            ratingText.textContent = '';
+            btnSubmit.disabled = true;
+            btnSubmit.setAttribute('disabled', 'disabled');
+        }
+    }
+
+
+    function initRatingForm() {
+        var soSaoSelect = document.getElementById('soSao');
+        var formDanhGia = document.getElementById('formDanhGia');
+
+        if (soSaoSelect) {
+
+            soSaoSelect.addEventListener('change', function () {
+                var selectedRating = parseInt(this.value);
+                updateRatingDisplay(selectedRating);
+            });
+
+
+            if (soSaoSelect.value && parseInt(soSaoSelect.value) > 0) {
+                updateRatingDisplay(parseInt(soSaoSelect.value));
+            }
+        }
+
+        if (formDanhGia) {
+
+            formDanhGia.addEventListener('submit', function (e) {
+                var soSao = parseInt(document.getElementById('soSao').value);
+                var ratingError = document.getElementById('ratingError');
+
+                if (soSao < 1 || soSao > 5) {
+                    e.preventDefault();
+                    if (ratingError) ratingError.style.display = 'block';
+                    if (soSaoSelect) soSaoSelect.focus();
+                    return false;
+                }
+            });
+        }
+
+
+        if (typeof jQuery !== 'undefined') {
+            jQuery(document).ready(function ($) {
+                $('#soSao').on('change', function () {
+                    var selectedRating = parseInt($(this).val());
+                    updateRatingDisplay(selectedRating);
+                });
+
+                $('#formDanhGia').on('submit', function (e) {
+                    var soSao = parseInt($('#soSao').val());
+                    if (soSao < 1 || soSao > 5) {
+                        e.preventDefault();
+                        $('#ratingError').show();
+                        $('#soSao').focus();
+                        return false;
+                    }
+                });
+            });
+        }
+    }
+
+
+    window.addEventListener('load', function () {
+        initRatingForm();
+    });
+
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(initRatingForm, 100);
+        });
+    } else {
+        setTimeout(initRatingForm, 100);
+    }
+</script>

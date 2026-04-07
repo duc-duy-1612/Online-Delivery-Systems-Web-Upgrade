@@ -1,0 +1,164 @@
+﻿@model IEnumerable<ĐACN.LoaiMonAn>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Quản lý danh mục";
+    var soMonDict = ViewBag.SoMonTheoLoai as IDictionary<string, int> ?? new Dictionary<string, int>();
+    var success = ViewBag.Success as string;
+    var error = ViewBag.Error as string;
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fw-bold text-danger"><i class="bi bi-tags"></i> Quản lý danh mục</h2>
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalAdd">
+            <i class="bi bi-plus-circle"></i> Thêm danh mục
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(success))
+    {
+        <div class="alert alert-success">@success</div>
+    }
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:80px;">Ảnh</th>
+                            <th>Mã danh mục</th>
+                            <th>Tên danh mục</th>
+                            <th>Số món</th>
+                            <th class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model == null || !Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">Chưa có danh mục nào.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model)
+                            {
+                                var img = string.IsNullOrEmpty(item.HinhAnh)
+                                    ? Url.Content("~/images/danhmuc/an_vat.png")
+                                    : Url.Content("~/images/danhmuc/" + item.HinhAnh);
+                                <tr>
+                                    <td>
+                                        <img src="@img" class="rounded" style="width:60px;height:60px;object-fit:cover;" />
+                                    </td>
+                                    <td>@item.MaLoai</td>
+                                    <td>@item.TenLoai</td>
+                                    <td>@(soMonDict.ContainsKey(item.MaLoai) ? soMonDict[item.MaLoai] : 0)</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-primary me-2"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalEdit"
+                                                data-id="@item.MaLoai"
+                                                data-name="@item.TenLoai"
+                                                data-img="@img">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        @using (Html.BeginForm("XoaDanhMuc", "Admin", FormMethod.Post, new { @class = "d-inline" }))
+                                        {
+                                            <input type="hidden" name="id" value="@item.MaLoai" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa danh mục này?');">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thêm -->
+<div class="modal fade" id="modalAdd" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm danh mục mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            @using (Html.BeginForm("ThemDanhMuc", "Admin", FormMethod.Post, new { enctype = "multipart/form-data" }))
+            {
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên danh mục</label>
+                        <input type="text" name="TenLoai" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Hình ảnh (png, jpg)</label>
+                        <input type="file" name="HinhAnhFile" class="form-control" accept=".png,.jpg,.jpeg" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger">Lưu</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal sửa -->
+<div class="modal fade" id="modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cập nhật danh mục</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            @using (Html.BeginForm("CapNhatDanhMuc", "Admin", FormMethod.Post, new { enctype = "multipart/form-data" }))
+            {
+                <div class="modal-body">
+                    <input type="hidden" name="MaLoai" id="editMaLoai" />
+                    <div class="mb-3">
+                        <label class="form-label">Tên danh mục</label>
+                        <input type="text" name="TenLoai" id="editTenLoai" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Hình hiện tại</label>
+                        <img id="editPreview" src="" class="d-block rounded mb-2" style="width:80px;height:80px;object-fit:cover;" />
+                        <input type="file" name="HinhAnhMoi" class="form-control" accept=".png,.jpg,.jpeg" />
+                        <small class="text-muted">Bỏ qua nếu không muốn thay đổi hình.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Cập nhật</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        const editModal = document.getElementById('modalEdit');
+        editModal.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const name = button.getAttribute('data-name');
+            const img = button.getAttribute('data-img');
+
+            document.getElementById('editMaLoai').value = id;
+            document.getElementById('editTenLoai').value = name;
+            document.getElementById('editPreview').src = img;
+        });
+    </script>
+}
+

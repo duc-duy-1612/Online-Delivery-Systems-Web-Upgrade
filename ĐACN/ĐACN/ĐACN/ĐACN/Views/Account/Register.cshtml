@@ -1,0 +1,669 @@
+﻿@{
+    ViewBag.Title = "Đăng ký tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .register-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .register-card {
+        max-width: 500px;
+        width: 100%;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 30px;
+        position: relative;
+    }
+
+    .next-btn {
+        font-weight: bold;
+        transition: all 0.3s;
+    }
+
+        .next-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .next-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+    .form-section {
+        display: none;
+    }
+
+        .form-section.active {
+            display: block;
+        }
+
+    .back-btn {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+
+    .preview-image {
+        max-width: 200px;
+        max-height: 200px;
+        margin-top: 10px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+
+    .form-label-small {
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+</style>
+
+<div class="register-container">
+    <div class="register-card">
+        <h3 class="text-center text-danger mb-4 fw-bold">
+            <i class="bi bi-person-plus"></i> Đăng ký tài khoản
+        </h3>
+
+        <div id="registerError" class="alert alert-danger text-center" style="display:none;"></div>
+        <div id="registerSuccess" class="alert alert-success text-center" style="display:none;"></div>
+
+
+        <div id="step1" class="form-section active">
+            <div class="form-group mb-4">
+                <label class="fw-semibold mb-3 text-center d-block">Chọn vai trò của bạn <span class="text-danger">*</span></label>
+                <select name="role" id="role" class="form-control form-control-lg mx-auto" style="max-width: 300px; text-align: center; text-align-last: center;" required>
+                    <option value="">-- Chọn vai trò --</option>
+                    <option value="KhachHang">Khách Hàng</option>
+                    <option value="NhaHang">Nhà Hàng</option>
+                    <option value="Shipper">Shipper</option>
+                </select>
+            </div>
+        </div>
+
+
+        <div id="formKhachHang" class="form-section">
+            <button type="button" class="back-btn" onclick="goBack()">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </button>
+            <h4 class="mb-4 text-center">Đăng ký Khách Hàng</h4>
+
+            <form id="registerKhachHangForm">
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Tên khách hàng <span class="text-danger">*</span></label>
+                    <input type="text" name="tenKH" id="tenKH" class="form-control" placeholder="Nhập tên khách hàng" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
+                    <input type="text" name="sdtKH" id="sdtKH" class="form-control" placeholder="Nhập số điện thoại" required onkeypress="return isNumberKey(event)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Địa chỉ <span class="text-danger">*</span></label>
+                    <div class="mb-2">
+                        <label class="form-label-small">Tỉnh / Thành phố</label>
+                        <select class="form-select form-select-sm" id="cityKH" required>
+                            <option value="" selected>Chọn Tỉnh Thành</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-small">Quận / Huyện</label>
+                        <select class="form-select form-select-sm" id="districtKH" required disabled>
+                            <option value="" selected>Chọn Quận Huyện</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-small">Phường / Xã</label>
+                        <select class="form-select form-select-sm" id="wardKH" required disabled>
+                            <option value="" selected>Chọn Phường Xã</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-small">Số nhà, Tên đường</label>
+                        <input type="text" class="form-control form-control-sm" id="streetKH" placeholder="Ví dụ: 123 Đường ABC" required />
+                    </div>
+                    <input type="hidden" name="diaChiKH" id="diaChiKH" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Tên đăng nhập <span class="text-danger">*</span></label>
+                    <input type="text" name="usernameKH" id="usernameKH" class="form-control" placeholder="Nhập tên đăng nhập" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Mật khẩu <span class="text-danger">*</span></label>
+                    <input type="password" name="passwordKH" id="passwordKH" class="form-control" placeholder="Nhập mật khẩu" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                    <input type="password" name="confirmPasswordKH" id="confirmPasswordKH" class="form-control" placeholder="Nhập lại mật khẩu" required />
+                </div>
+            </form>
+        </div>
+
+
+        <div id="formNhaHang" class="form-section">
+            <button type="button" class="back-btn" onclick="goBack()">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </button>
+            <h4 class="mb-4 text-center">Đăng ký Nhà Hàng</h4>
+
+            <form id="registerNhaHangForm" enctype="multipart/form-data">
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Tên nhà hàng <span class="text-danger">*</span></label>
+                    <input type="text" name="tenNH" id="tenNH" class="form-control" placeholder="Nhập tên nhà hàng" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Địa chỉ <span class="text-danger">*</span></label>
+                    <div class="mb-2">
+                        <label class="form-label-small">Tỉnh / Thành phố</label>
+                        <select class="form-select form-select-sm" id="cityNH" required>
+                            <option value="" selected>Chọn Tỉnh Thành</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-small">Quận / Huyện</label>
+                        <select class="form-select form-select-sm" id="districtNH" required disabled>
+                            <option value="" selected>Chọn Quận Huyện</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-small">Phường / Xã</label>
+                        <select class="form-select form-select-sm" id="wardNH" required disabled>
+                            <option value="" selected>Chọn Phường Xã</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-small">Số nhà, Tên đường</label>
+                        <input type="text" class="form-control form-control-sm" id="streetNH" placeholder="Ví dụ: 123 Đường ABC" required />
+                    </div>
+                    <input type="hidden" name="diaChiNH" id="diaChiNH" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
+                    <input type="text" name="sdtNH" id="sdtNH" class="form-control" placeholder="Nhập số điện thoại" required onkeypress="return isNumberKey(event)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Hình ảnh <span class="text-danger">*</span></label>
+                    <input type="file" name="hinhAnhNH" id="hinhAnhNH" class="form-control" accept="image/*" required />
+                    <small class="form-text text-muted">Chọn ảnh đại diện cho nhà hàng</small>
+                    <img id="previewNH" class="preview-image" style="display:none;" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Tên đăng nhập <span class="text-danger">*</span></label>
+                    <input type="text" name="usernameNH" id="usernameNH" class="form-control" placeholder="Nhập tên đăng nhập" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Mật khẩu <span class="text-danger">*</span></label>
+                    <input type="password" name="passwordNH" id="passwordNH" class="form-control" placeholder="Nhập mật khẩu" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                    <input type="password" name="confirmPasswordNH" id="confirmPasswordNH" class="form-control" placeholder="Nhập lại mật khẩu" required />
+                </div>
+            </form>
+        </div>
+
+
+        <div id="formShipper" class="form-section">
+            <button type="button" class="back-btn" onclick="goBack()">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </button>
+            <h4 class="mb-4 text-center">Đăng ký Shipper</h4>
+
+            <form id="registerShipperForm" enctype="multipart/form-data">
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Tên shipper <span class="text-danger">*</span></label>
+                    <input type="text" name="tenShipper" id="tenShipper" class="form-control" placeholder="Nhập tên shipper" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
+                    <input type="text" name="sdtShipper" id="sdtShipper" class="form-control" placeholder="Nhập số điện thoại" required onkeypress="return isNumberKey(event)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Biển số xe <span class="text-danger">*</span></label>
+                    <input type="text" name="bienSoXe" id="bienSoXe" class="form-control" placeholder="Nhập biển số xe" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Hình ảnh <span class="text-danger">*</span></label>
+                    <input type="file" name="hinhAnhShipper" id="hinhAnhShipper" class="form-control" accept="image/*" required />
+                    <small class="form-text text-muted">Chọn ảnh đại diện</small>
+                    <img id="previewShipper" class="preview-image" style="display:none;" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Tên đăng nhập <span class="text-danger">*</span></label>
+                    <input type="text" name="usernameShipper" id="usernameShipper" class="form-control" placeholder="Nhập tên đăng nhập" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Mật khẩu <span class="text-danger">*</span></label>
+                    <input type="password" name="passwordShipper" id="passwordShipper" class="form-control" placeholder="Nhập mật khẩu" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-semibold">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                    <input type="password" name="confirmPasswordShipper" id="confirmPasswordShipper" class="form-control" placeholder="Nhập lại mật khẩu" required />
+                </div>
+            </form>
+        </div>
+
+        <div class="text-center mt-3">
+            <p>
+                Đã có tài khoản?
+                <a href="/Account/Login" class="text-decoration-none text-danger fw-semibold">Đăng nhập ngay</a>
+            </p>
+        </div>
+
+
+        <div class="text-center mt-3">
+            <button type="button" id="nextBtn" class="btn btn-danger btn-lg w-100" onclick="handleNext()" disabled>
+                <i class="bi bi-arrow-right" id="nextBtnIcon"></i> <span id="nextBtnText">Tiếp theo</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+@section Scripts {
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+
+        function isNumberKey(evt) {
+            var charCode = (evt.which) ? evt.which : event.keyCode;
+            if (charCode > 31 && (charCode < 48 || charCode > 57))
+                return false;
+            return true;
+        }
+
+        var currentStep = 1;
+        var selectedRole = '';
+
+        $(document).ready(function () {
+
+            $('#role').change(function () {
+                selectedRole = $(this).val();
+                $('#nextBtn').prop('disabled', !selectedRole);
+            });
+
+
+            $('#hinhAnhNH').change(function (e) {
+                if (e.target.files && e.target.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        $('#previewNH').attr('src', e.target.result).show();
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+
+
+            $('#hinhAnhShipper').change(function (e) {
+                if (e.target.files && e.target.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        $('#previewShipper').attr('src', e.target.result).show();
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+
+
+            initAddressDropdowns();
+            initAddressDropdownsNH();
+        });
+
+
+        function initAddressDropdowns() {
+
+            $.getJSON('https://esgoo.net/api-tinhthanh/1/0.htm', function (data) {
+                if (data.error == 0) {
+                    $.each(data.data, function (key, val) {
+                        $("#cityKH").append(`<option value="${val.id}">${val.full_name}</option>`);
+                    });
+                }
+            });
+
+
+            $("#cityKH").off("change").on("change", function () {
+                var cityId = $(this).val();
+                $("#districtKH").html('<option value="">Chọn Quận Huyện</option>').prop('disabled', true);
+                $("#wardKH").html('<option value="">Chọn Phường Xã</option>').prop('disabled', true);
+                updateFullAddress();
+
+                if (cityId) {
+                    $.getJSON(`https://esgoo.net/api-tinhthanh/2/${cityId}.htm`, function (data) {
+                        if (data.error == 0) {
+                            $("#districtKH").prop('disabled', false);
+                            $.each(data.data, function (key, val) {
+                                $("#districtKH").append(`<option value="${val.id}">${val.full_name}</option>`);
+                            });
+                        }
+                    });
+                }
+            });
+
+
+            $("#districtKH").off("change").on("change", function () {
+                var districtId = $(this).val();
+                $("#wardKH").html('<option value="">Chọn Phường Xã</option>').prop('disabled', true);
+                updateFullAddress();
+
+                if (districtId) {
+                    $.getJSON(`https://esgoo.net/api-tinhthanh/3/${districtId}.htm`, function (data) {
+                        if (data.error == 0) {
+                            $("#wardKH").prop('disabled', false);
+                            $.each(data.data, function (key, val) {
+                                $("#wardKH").append(`<option value="${val.id}">${val.full_name}</option>`);
+                            });
+                        }
+                    });
+                }
+            });
+
+
+            $("#wardKH, #streetKH").off("change input").on("change input", function () {
+                updateFullAddress();
+            });
+        }
+
+
+        function updateFullAddress() {
+            var street = $("#streetKH").val().trim();
+            var wardText = $("#wardKH option:selected").text();
+            var districtText = $("#districtKH option:selected").text();
+            var cityText = $("#cityKH option:selected").text();
+
+            var fullAddress = "";
+            if (street) fullAddress += street;
+            if (wardText && wardText !== "Chọn Phường Xã") {
+                if (fullAddress) fullAddress += ", ";
+                fullAddress += wardText;
+            }
+            if (districtText && districtText !== "Chọn Quận Huyện") {
+                if (fullAddress) fullAddress += ", ";
+                fullAddress += districtText;
+            }
+            if (cityText && cityText !== "Chọn Tỉnh Thành") {
+                if (fullAddress) fullAddress += ", ";
+                fullAddress += cityText;
+            }
+
+            $("#diaChiKH").val(fullAddress);
+        }
+
+
+        function initAddressDropdownsNH() {
+
+            $.getJSON('https://esgoo.net/api-tinhthanh/1/0.htm', function (data) {
+                if (data.error == 0) {
+                    $.each(data.data, function (key, val) {
+                        $("#cityNH").append(`<option value="${val.id}">${val.full_name}</option>`);
+                    });
+                }
+            });
+
+
+            $("#cityNH").off("change").on("change", function () {
+                var cityId = $(this).val();
+                $("#districtNH").html('<option value="">Chọn Quận Huyện</option>').prop('disabled', true);
+                $("#wardNH").html('<option value="">Chọn Phường Xã</option>').prop('disabled', true);
+                updateFullAddressNH();
+
+                if (cityId) {
+                    $.getJSON(`https://esgoo.net/api-tinhthanh/2/${cityId}.htm`, function (data) {
+                        if (data.error == 0) {
+                            $("#districtNH").prop('disabled', false);
+                            $.each(data.data, function (key, val) {
+                                $("#districtNH").append(`<option value="${val.id}">${val.full_name}</option>`);
+                            });
+                        }
+                    });
+                }
+            });
+
+
+            $("#districtNH").off("change").on("change", function () {
+                var districtId = $(this).val();
+                $("#wardNH").html('<option value="">Chọn Phường Xã</option>').prop('disabled', true);
+                updateFullAddressNH();
+
+                if (districtId) {
+                    $.getJSON(`https://esgoo.net/api-tinhthanh/3/${districtId}.htm`, function (data) {
+                        if (data.error == 0) {
+                            $("#wardNH").prop('disabled', false);
+                            $.each(data.data, function (key, val) {
+                                $("#wardNH").append(`<option value="${val.id}">${val.full_name}</option>`);
+                            });
+                        }
+                    });
+                }
+            });
+
+
+            $("#wardNH, #streetNH").off("change input").on("change input", function () {
+                updateFullAddressNH();
+            });
+        }
+
+
+        function updateFullAddressNH() {
+            var street = $("#streetNH").val().trim();
+            var wardText = $("#wardNH option:selected").text();
+            var districtText = $("#districtNH option:selected").text();
+            var cityText = $("#cityNH option:selected").text();
+
+            var fullAddress = "";
+            if (street) fullAddress += street;
+            if (wardText && wardText !== "Chọn Phường Xã") {
+                if (fullAddress) fullAddress += ", ";
+                fullAddress += wardText;
+            }
+            if (districtText && districtText !== "Chọn Quận Huyện") {
+                if (fullAddress) fullAddress += ", ";
+                fullAddress += districtText;
+            }
+            if (cityText && cityText !== "Chọn Tỉnh Thành") {
+                if (fullAddress) fullAddress += ", ";
+                fullAddress += cityText;
+            }
+
+            $("#diaChiNH").val(fullAddress);
+        }
+
+        function handleNext() {
+            if (currentStep === 1) {
+
+                selectedRole = $('#role').val();
+                if (!selectedRole) {
+                    alert('Vui lòng chọn vai trò!');
+                    return;
+                }
+
+                $('#step1').removeClass('active');
+                $('#nextBtnText').text('Đăng ký');
+                $('#nextBtnIcon').removeClass('bi-arrow-right').addClass('bi-check2-circle');
+
+                if (selectedRole === 'KhachHang') {
+                    $('#formKhachHang').addClass('active');
+
+                    $("#cityKH").val("").trigger('change');
+                    $("#districtKH").html('<option value="">Chọn Quận Huyện</option>').prop('disabled', true);
+                    $("#wardKH").html('<option value="">Chọn Phường Xã</option>').prop('disabled', true);
+                    $("#streetKH").val("");
+                    $("#diaChiKH").val("");
+                } else if (selectedRole === 'NhaHang') {
+                    $('#formNhaHang').addClass('active');
+
+                    $("#cityNH").val("").trigger('change');
+                    $("#districtNH").html('<option value="">Chọn Quận Huyện</option>').prop('disabled', true);
+                    $("#wardNH").html('<option value="">Chọn Phường Xã</option>').prop('disabled', true);
+                    $("#streetNH").val("");
+                    $("#diaChiNH").val("");
+                } else if (selectedRole === 'Shipper') {
+                    $('#formShipper').addClass('active');
+                }
+                currentStep = 2;
+            } else {
+
+                submitRegister();
+            }
+        }
+
+        function goBack() {
+            $('.form-section').removeClass('active');
+            $('#step1').addClass('active');
+            $('#nextBtnText').text('Tiếp theo');
+            $('#nextBtnIcon').removeClass('bi-check2-circle').addClass('bi-arrow-right');
+            $('#nextBtn').prop('disabled', false);
+            currentStep = 1;
+            selectedRole = '';
+            $('#role').val('');
+        }
+
+        function submitRegister() {
+            var formData = new FormData();
+            var token = $('input[name="__RequestVerificationToken"]').val();
+
+            if (selectedRole === 'KhachHang') {
+                var password = $('#passwordKH').val();
+                var confirmPassword = $('#confirmPasswordKH').val();
+
+                if (password !== confirmPassword) {
+                    $("#registerError").text("Mật khẩu xác nhận không khớp!").show();
+                    return;
+                }
+
+
+                var fullAddress = $('#diaChiKH').val();
+                if (!fullAddress || fullAddress.trim() === "") {
+                    $("#registerError").text("Vui lòng chọn đầy đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã và nhập số nhà, tên đường!").show();
+                    return;
+                }
+
+                formData.append('role', 'KhachHang');
+                formData.append('username', $('#usernameKH').val());
+                formData.append('password', password);
+                formData.append('tenKH', $('#tenKH').val());
+                formData.append('sdt', $('#sdtKH').val());
+                formData.append('diaChi', fullAddress);
+                formData.append('__RequestVerificationToken', token);
+            }
+            else if (selectedRole === 'NhaHang') {
+                var password = $('#passwordNH').val();
+                var confirmPassword = $('#confirmPasswordNH').val();
+
+                if (password !== confirmPassword) {
+                    $("#registerError").text("Mật khẩu xác nhận không khớp!").show();
+                    return;
+                }
+
+
+                var fullAddress = $('#diaChiNH').val();
+                if (!fullAddress || fullAddress.trim() === "") {
+                    $("#registerError").text("Vui lòng chọn đầy đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã và nhập số nhà, tên đường!").show();
+                    return;
+                }
+
+                var fileInput = $('#hinhAnhNH')[0];
+                if (fileInput.files.length > 0) {
+                    formData.append('hinhAnhFile', fileInput.files[0]);
+                }
+
+                formData.append('role', 'NhaHang');
+                formData.append('username', $('#usernameNH').val());
+                formData.append('password', password);
+                formData.append('tenNH', $('#tenNH').val());
+                formData.append('diaChi', fullAddress);
+                formData.append('sdt', $('#sdtNH').val());
+                formData.append('__RequestVerificationToken', token);
+            }
+            else if (selectedRole === 'Shipper') {
+                var password = $('#passwordShipper').val();
+                var confirmPassword = $('#confirmPasswordShipper').val();
+
+                if (password !== confirmPassword) {
+                    $("#registerError").text("Mật khẩu xác nhận không khớp!").show();
+                    return;
+                }
+
+                var fileInput = $('#hinhAnhShipper')[0];
+                if (fileInput.files.length > 0) {
+                    formData.append('hinhAnhFile', fileInput.files[0]);
+                }
+
+                formData.append('role', 'Shipper');
+                formData.append('username', $('#usernameShipper').val());
+                formData.append('password', password);
+                formData.append('tenShipper', $('#tenShipper').val());
+                formData.append('sdt', $('#sdtShipper').val());
+                formData.append('bienSoXe', $('#bienSoXe').val());
+                formData.append('__RequestVerificationToken', token);
+            }
+
+            $.ajax({
+                url: '/Account/Register',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (res) {
+                    if (res && res.success) {
+                        $("#registerError").hide();
+                        var message = res.message || "Đăng ký thành công!";
+
+                        if (selectedRole === "NhaHang" || selectedRole === "Shipper") {
+                            if (confirm(message + "\n\nBạn đã đăng ký thành công nhưng cần chờ Admin xác nhận.\n\nBạn có muốn quay lại trang đăng nhập không?")) {
+                                window.location.href = '/Account/Login';
+                            }
+                        } else {
+                            $("#registerSuccess").text(message).show();
+                            setTimeout(function () {
+                                window.location.href = '/Account/Login';
+                            }, 2000);
+                        }
+                    } else {
+                        $("#registerSuccess").hide();
+                        $("#registerError").text(res.message || "Có lỗi xảy ra, vui lòng thử lại.").show();
+                    }
+                },
+                error: function (xhr) {
+                    $("#registerSuccess").hide();
+                    var errorMsg = "Có lỗi xảy ra, vui lòng thử lại.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    $("#registerError").text(errorMsg).show();
+                }
+            });
+        }
+    </script>
+}
