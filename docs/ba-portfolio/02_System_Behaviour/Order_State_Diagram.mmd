@@ -1,0 +1,51 @@
+%% Online Food Delivery System — Order State Diagram
+%% Status: APPROVED
+%% Version: 1.0
+%% Visual source: Order_State_Diagram.md — APPROVED v1.0
+%% Governance source: 00_README_BA_Evidence_Pack.md — APPROVED v1.0
+%% Evidence classification: BASELINE happy-path states with explicitly marked unresolved semantics
+%% Mermaid state diagram; target lifecycle only.
+%% Do not infer undocumented Order.Status values or transitions.
+
+stateDiagram-v2
+
+    [*] --> Pending : Order created after confirmed checkout
+
+    state "Chờ xác nhận (Pending Confirmation)" as Pending
+    state "Đang lấy món (Ready for Pickup)" as Ready
+    state "Đang giao (Delivering)" as Delivering
+    state "Hoàn thành (Completed)" as Completed
+
+    Pending --> Ready : Restaurant selects "Làm xong"
+
+    note right of Pending
+        Exact intermediate confirmation semantics:
+        NOT EVIDENCED / REQUIRES CLARIFICATION
+    end note
+
+    Ready --> Delivering : Shipper collects order
+
+    note right of Ready
+        Shipper acceptance eligibility:
+        - Order is unassigned (BR-SHIP-02)
+        - Shipper eligibility also applies (BR-SHIP-01)
+
+        "Active delivery" state / attribute derivation:
+        NOT EVIDENCED / REQUIRES CLARIFICATION
+    end note
+
+    Delivering --> Completed : Shipper completes delivery
+
+    note right of Delivering
+        Assignment cancellation after delivery has started:
+        assignment is cleared and order returns to delivery pool.
+
+        Exact post-cancellation Order.Status transition:
+        NOT EVIDENCED / REQUIRES CLARIFICATION
+    end note
+
+    note right of Completed
+        Review permitted after Completed (BR-ORDER-01)
+    end note
+
+    Completed --> [*]

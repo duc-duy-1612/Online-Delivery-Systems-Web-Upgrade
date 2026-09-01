@@ -1,0 +1,109 @@
+%% Logical ERD — Online Food Delivery System
+%% Status: APPROVED
+%% Version: 1.0
+%% Source: Logical_ERD.md — APPROVED v1.0
+%% Purpose: Recruiter-facing logical data model derived from approved analysis
+
+%% PHYSICAL MAPPINGS:
+%% ACCOUNT -> TaiKhoan
+%% CUSTOMER -> KhachHang
+%% RESTAURANT -> NhaHang
+%% SHIPPER -> Shipper
+%% MENU CATEGORY -> LoaiMonAn
+%% FOOD ITEM -> MonAn
+%% ORDER -> DonHang
+%% ORDER DETAIL -> ChiTietDonHang
+%% RESTAURANT REVIEW -> DanhGiaNhaHang
+%% SHIPPER REVIEW -> DanhGiaShipper
+
+%% CAVEATS
+%% Unassigned is represented by nullable DonHang.MaShipper.
+%% Unassigned is NOT an Order.Status.
+%% Delivery Fee and Service Fee are logically distinct TARGET concepts.
+%% CURRENT persistence uses the verified DonHang.ShipFee mapping.
+%% No dedicated Delivery Distance field is verified.
+%% No dedicated Payment Method field is verified.
+%% Review FK multiplicities reflect CURRENT physical persistence.
+%% TARGET review cardinality/editability remains TBD.
+%%
+%% Source authority:
+%% Logical entities / business semantics -> Approved Logical_ERD.md / S1
+%% Physical fields / FK structure -> S4 EDMX
+%% Logical-to-physical mapping -> Approved Data Dictionary
+%% This diagram is a recruiter-facing logical ERD, not a full physical database schema dump.
+erDiagram
+    Account {
+        string MaTK PK
+        string TenDangNhap
+        string VaiTro
+        string TrangThai
+    }
+    Customer {
+        string MaKH PK
+        string MaTK FK
+    }
+    Restaurant {
+        string MaNH PK
+        string MaTK FK
+    }
+    Shipper {
+        string MaShipper PK
+        string MaTK FK
+    }
+    "Menu Category" {
+        string MaLoai PK
+    }
+    "Food Item" {
+        string MaMon PK
+        string MaNH FK
+        string MaLoai FK
+    }
+    Order {
+        string MaDon PK
+        string MaKH FK
+        string MaNH FK
+        string MaShipper FK "Nullable"
+        string TrangThai
+        decimal TongTien
+        decimal ShipFee
+    }
+    "Order Detail" {
+        int MaChiTiet PK
+        string MaDon FK
+        string MaMon FK
+    }
+    "Restaurant Review" {
+        string MaDGNH PK
+        string MaDon FK
+        string MaKH FK
+        string MaNH FK
+    }
+    "Shipper Review" {
+        string MaDG PK
+        string MaDon FK
+        string MaKH FK
+        string MaShipper FK
+    }
+
+    Account ||--o{ Customer : "authenticates"
+    Account ||--o{ Restaurant : "authenticates"
+    Account ||--o{ Shipper : "authenticates"
+
+    Customer ||--o{ Order : "places"
+    Restaurant ||--o{ Order : "receives"
+    Shipper |o--o{ Order : "delivers"
+
+    Order ||--o{ "Order Detail" : "contains"
+    "Food Item" ||--o{ "Order Detail" : "references"
+    Restaurant ||--o{ "Food Item" : "offers"
+    "Menu Category" ||--o{ "Food Item" : "classifies"
+
+    Order ||--o{ "Restaurant Review" : "has"
+    Customer ||--o{ "Restaurant Review" : "writes"
+    Restaurant ||--o{ "Restaurant Review" : "receives"
+
+    Order ||--o{ "Shipper Review" : "has"
+    Customer ||--o{ "Shipper Review" : "writes"
+    Shipper ||--o{ "Shipper Review" : "receives"
+
+

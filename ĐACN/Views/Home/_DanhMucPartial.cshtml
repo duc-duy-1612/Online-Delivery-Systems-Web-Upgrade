@@ -1,0 +1,112 @@
+@using ĐACN.Models
+@{
+    Layout = null;
+
+    // Kiểm tra session user
+    var tk = Session["TaiKhoan"] as TaiKhoan;
+}
+
+@model IEnumerable<LoaiMonAnViewModel>
+
+@if (Model == null || !Model.Any())
+{
+    <p class="text-center text-muted mt-3">Chưa có danh mục nào để hiển thị.</p>
+}
+else
+{
+    <style>
+        .category-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 20px;
+            padding-bottom: 20px;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
+        }
+        .category-scroll::-webkit-scrollbar {
+            display: none; /* Chrome */
+        }
+
+        .category-card {
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: var(--soft-shadow);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            min-width: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 10px;
+        }
+
+            .category-card:hover {
+                transform: translateY(-8px);
+                box-shadow: var(--hover-shadow);
+                color: var(--primary-color);
+            }
+
+        .category-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        @@media (max-width: 768px) {
+            .category-img {
+                width: 90px;
+                height: 90px;
+            }
+        }
+    </style>
+
+    <div class="category-scroll">
+        @foreach (var dm in Model)
+        {
+            <a href="@Url.Action("MonAnTheoLoai", "KhachHang", new { maLoai = dm.MaLoai })"
+               class="category-link require-login"
+               data-id="@dm.MaLoai"
+               style="text-decoration:none;">
+                <div class="category-card text-center">
+                    <img src="@(string.IsNullOrEmpty(dm.HinhAnh) ? Url.Content("~/images/danhmuc/com.png") : Url.Content("~/images/danhmuc/" + dm.HinhAnh))" alt="@dm.TenLoai" class="category-img mb-3" onerror="this.onerror=null; this.src='@Url.Content("~/images/danhmuc/com.png")'" />
+                    <h6 class="mt-2 fw-bold mb-0">@dm.TenLoai</h6>
+                </div>
+            </a>
+        }
+    </div>
+
+    <!-- Modal Đăng nhập -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Đăng nhập</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Tên đăng nhập</label>
+                            <input type="text" class="form-control" id="username" name="username" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mật khẩu</label>
+                            <input type="password" class="form-control" id="password" name="password" required />
+                        </div>
+                        <div id="loginError" class="text-danger mb-2" style="display:none;"></div>
+                        <button type="submit" class="btn btn-primary-custom w-100">Đăng nhập</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+}

@@ -1,0 +1,488 @@
+@model ĐACN.Models.TheoDoiDonHangFullViewModel
+@using System.Globalization
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Theo Dõi Đơn Hàng";
+
+    var steps = new[] { "Chờ xác nhận", "Đang lấy món", "Đang giao", "Hoàn thành" };
+    var currentStepIndex = Array.IndexOf(steps, Model.DonHang.TrangThai);
+    if (currentStepIndex == -1)
+    {
+        if (Model.DonHang.TrangThai.Contains("Hủy")) { currentStepIndex = -1; } 
+        else { currentStepIndex = 0; }
+    }
+
+    bool isTrackingActive = !string.IsNullOrEmpty(Model.DonHang.MaShipper) &&
+                            (Model.DonHang.TrangThai == "Đang lấy món" || Model.DonHang.TrangThai == "Đang giao");
+
+    double? initialLat = Model.DonHang.KhachHangLatitude.HasValue && Model.DonHang.KhachHangLatitude != 0 ? Model.DonHang.KhachHangLatitude : (double?)10.7769;
+    double? initialLng = Model.DonHang.KhachHangLongitude.HasValue && Model.DonHang.KhachHangLongitude != 0 ? Model.DonHang.KhachHangLongitude : (double?)106.7009;
+}
+
+@functions {
+    public static string GetStatusBadgeClass(string trangThai)
+    {
+        if (string.IsNullOrWhiteSpace(trangThai)) return "bg-secondary";
+        string s = trangThai.ToLower();
+        if (s.Contains("chờ") || s.Contains("xác nhận")) return "badge-warning";
+        if (s.Contains("lấy món")) return "badge-info";
+        if (s.Contains("đang giao")) return "badge-primary";
+        if (s.Contains("hoàn")) return "badge-success";
+        if (s.Contains("hủy")) return "badge-danger";
+        return "bg-secondary";
+    }
+}
+
+<style>
+    body {
+        background-color: #f5f7fa;
+    }
+
+    /* --- Giao diện chung --- */
+    .page-title {
+        font-weight: 800;
+        color: #2b2b2b;
+    }
+    .custom-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+    .badge-warning { background: #fff3cd; color: #856404; }
+    .badge-info { background: #cff4fc; color: #055160; }
+    .badge-primary { background: #cfe2ff; color: #084298; }
+    .badge-success { background: #d1e7dd; color: #0f5132; }
+    .badge-danger { background: #f8d7da; color: #842029; }
+
+    /* --- Floating Cards --- */
+    .floating-card {
+        background: #fff;
+        border-radius: 1.5rem;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    .floating-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+    }
+    .card-header-custom {
+        background: #fff;
+        border-bottom: 1px dashed #e9ecef;
+        padding: 1.25rem 1.5rem;
+    }
+    .card-header-custom h5 {
+        font-weight: 700;
+        color: #2b2b2b;
+        margin: 0;
+    }
+
+    /* --- Stepper mượt mà --- */
+    .stepper-container {
+        padding: 2rem 1rem;
+        position: relative;
+    }
+    .step-wrapper {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        z-index: 2;
+    }
+    .step {
+        text-align: center;
+        flex: 1;
+        position: relative;
+    }
+    .step-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #fff;
+        border: 3px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+        color: #adb5bd;
+        transition: all 0.5s ease;
+        position: relative;
+        z-index: 2;
+    }
+    .step-label {
+        font-weight: 600;
+        color: #adb5bd;
+        font-size: 0.9rem;
+        transition: all 0.5s ease;
+    }
+    .step-active .step-circle {
+        border-color: #0d6efd;
+        background: #0d6efd;
+        color: white;
+        box-shadow: 0 0 0 8px rgba(13, 110, 253, 0.15);
+        transform: scale(1.1);
+    }
+    .step-active .step-label {
+        color: #0d6efd;
+    }
+    .step-complete .step-circle {
+        border-color: #198754;
+        background: #198754;
+        color: white;
+    }
+    .step-complete .step-label {
+        color: #198754;
+    }
+
+    /* Connecting Lines */
+    .stepper-progress {
+        position: absolute;
+        top: 2rem;
+        left: 10%;
+        width: 80%;
+        height: 4px;
+        background-color: #e9ecef;
+        z-index: 1;
+        border-radius: 2px;
+        transform: translateY(22px); /* Canh giữa circle */
+    }
+    .stepper-progress-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: linear-gradient(90deg, #198754, #0d6efd);
+        border-radius: 2px;
+        transition: width 1s ease-in-out;
+    }
+
+    /* --- Map & Overlay --- */
+    #map {
+        height: 500px;
+        width: 100%;
+        border-radius: 0 0 1.5rem 1.5rem;
+        z-index: 1;
+    }
+    .map-info-overlay {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 400px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 1rem;
+        border-radius: 1rem;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.5);
+    }
+
+    /* --- List Items --- */
+    .order-item-list .list-group-item {
+        border: none;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+    }
+    .order-item-list .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<div class="container mt-4 mb-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <h2 class="page-title mb-0">Chi tiết Đơn hàng #@Model.DonHang.MaDon</h2>
+        <span class="custom-badge @GetStatusBadgeClass(Model.DonHang.TrangThai)">
+            <i class="fas fa-info-circle me-1"></i>@Model.DonHang.TrangThai
+        </span>
+    </div>
+
+    <!-- TIẾN TRÌNH ĐƠN HÀNG -->
+    <div class="floating-card stepper-container">
+        <div class="stepper-progress">
+            @{
+                // Tính toán width cho progress bar
+                double progressWidth = 0;
+                if (currentStepIndex > 0)
+                {
+                    progressWidth = (currentStepIndex / (double)(steps.Length - 1)) * 100;
+                }
+            }
+            <div class="stepper-progress-bar" style="width: @progressWidth%;"></div>
+        </div>
+        <div class="step-wrapper">
+            @for (int i = 0; i < steps.Length; i++)
+            {
+                var statusClass = i < currentStepIndex ? "step-complete" : i == currentStepIndex ? "step-active" : "step-upcoming";
+                <div class="step @statusClass">
+                    <div class="step-circle">
+                        @if (i < currentStepIndex)
+                        {<i class="fas fa-check"></i> }
+                        else if (i == currentStepIndex && i != steps.Length - 1)
+                        { <i class="fas fa-spinner fa-spin"></i> }
+                        else
+                        { <span>@(i + 1)</span>}
+                    </div>
+                    <div class="step-label mt-2">@steps[i]</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- BẢN ĐỒ -->
+        <div class="col-lg-8">
+            <div class="floating-card h-100 d-flex flex-column">
+                <div class="card-header-custom">
+                    <h5>Hành trình giao hàng</h5>
+                </div>
+                <div class="position-relative flex-grow-1">
+                    @if (isTrackingActive)
+                    {
+                        <div id="map"></div>
+                        <div class="map-info-overlay">
+                            <div class="d-flex justify-content-between text-center mb-2">
+                                <div class="flex-grow-1">
+                                    <small class="text-muted fw-bold d-block mb-1">KHOẢNG CÁCH</small>
+                                    <strong id="distance-display" class="text-primary fs-5">...</strong>
+                                </div>
+                                <div class="border-start mx-2"></div>
+                                <div class="flex-grow-1">
+                                    <small class="text-muted fw-bold d-block mb-1">DỰ KIẾN ĐẾN</small>
+                                    <strong id="duration-display" class="text-dark fs-5">...</strong>
+                                </div>
+                            </div>
+                            <div class="text-center pt-2 border-top">
+                                <span id="route-status-text" class="text-warning fw-bold small"><i class="fas fa-sync-alt fa-spin me-1"></i> Đang tải dữ liệu...</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 px-3 bg-light" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 0 0 1.5rem 1.5rem;">
+                            <img src="~/images/other/map-placeholder.png" style="width:120px; opacity:0.3" class="mb-4" />
+                            <h5 class="text-secondary fw-bold">Bản đồ chưa khả dụng</h5>
+                            <p class="text-muted mb-0">Vị trí Shipper sẽ hiển thị khi đơn hàng đang được giao.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- THÔNG TIN ĐƠN HÀNG -->
+        <div class="col-lg-4">
+            <div class="floating-card mb-4">
+                <div class="card-header-custom">
+                    <h5>Thông tin nhận hàng</h5>
+                </div>
+                <div class="p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light rounded-circle p-3 me-3 text-primary"><i class="fas fa-user"></i></div>
+                        <div>
+                            <small class="text-muted d-block">Tên người nhận</small>
+                            <strong>@Model.DonHang.TenKH</strong>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light rounded-circle p-3 me-3 text-success"><i class="fas fa-phone-alt"></i></div>
+                        <div>
+                            <small class="text-muted d-block">Số điện thoại</small>
+                            <strong><a href="tel:@Model.DonHang.Sdt" class="text-dark text-decoration-none">@Model.DonHang.Sdt</a></strong>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start">
+                        <div class="bg-light rounded-circle p-3 me-3 text-danger"><i class="fas fa-map-marker-alt"></i></div>
+                        <div>
+                            <small class="text-muted d-block">Địa chỉ giao hàng</small>
+                            <span class="fw-bold">@Model.DonHang.DiaChi</span>
+                        </div>
+                    </div>
+                    
+                    <hr class="mt-4 mb-3" />
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary shadow-sm" onclick="openChat('NH_@Model.DonHang.MaNH', 'Nhà hàng @(Model.DonHang.TenNH)', '@Model.DonHang.MaDon')">
+                            <i class="bi bi-chat-dots-fill me-1"></i> Chat với Nhà hàng
+                        </button>
+                        @if (!string.IsNullOrEmpty(Model.DonHang.MaShipper))
+                        {
+                            <button class="btn btn-outline-info shadow-sm" onclick="openChat('SH_@Model.DonHang.MaShipper', 'Tài xế @(Model.DonHang.TenShipper ?? "Shipper")', '@Model.DonHang.MaDon')">
+                                <i class="bi bi-chat-dots-fill me-1"></i> Chat với Tài xế
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="floating-card">
+                <div class="card-header-custom">
+                    <h5>Chi tiết hóa đơn</h5>
+                </div>
+                <ul class="list-group list-group-flush order-item-list">
+                    @foreach (var ct in Model.ChiTietDonHang)
+                    {
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div class="fw-bold text-dark pe-2">
+                                    <span class="text-primary me-1">@ct.SoLuong x</span> @ct.TenMon
+                                </div>
+                                <span class="fw-bold text-dark text-nowrap">@ct.TongTien.ToString("N0")đ</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(ct.Note))
+                            {
+                                <div class="small text-muted fst-italic mt-1 bg-light p-2 rounded">
+                                    <i class="fas fa-pen text-secondary me-1"></i> @ct.Note
+                                </div>
+                            }
+                        </li>
+                    }
+                </ul>
+                <div class="p-4 bg-light d-flex justify-content-between align-items-center border-top">
+                    <span class="text-muted fw-bold">TỔNG CỘNG</span>
+                    <span class="fs-4 fw-bold text-danger">@Model.DonHang.TongTien.ToString("N0")đ</span>
+                </div>
+            </div>
+
+            <div class="mt-4 text-center">
+                <a href="@Url.Action("DonHangCuaToi", "KhachHang")" class="btn btn-light border px-4 py-2 rounded-pill fw-bold shadow-sm hover-shadow">
+                    Về danh sách đơn hàng
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isTrackingActive)
+{
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-rotatedmarker/0.2.0/leaflet.rotatedMarker.min.js"></script>
+
+    <script>
+        var map, routeLine;
+        var markers = {};
+        var maDon = "@Model.DonHang.MaDon";
+        var isMapInit = false;
+
+        var iconShipper = L.icon({ iconUrl: '/images/arrows/shipper.png', iconSize: [40, 40], iconAnchor: [20, 20] }); 
+        var iconRest = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] });
+        var iconCust = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] });
+
+        function initMap() {
+            var lat = @(initialLat.Value.ToString(CultureInfo.InvariantCulture));
+            var lng = @(initialLng.Value.ToString(CultureInfo.InvariantCulture));
+            map = L.map('map').setView([lat, lng], 14);
+            L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                attribution: '&copy; Google Maps',
+                subdomains: ['0', '1', '2', '3'],
+                maxZoom: 20
+            }).addTo(map);
+
+            setTimeout(function() { map.invalidateSize(); }, 500);
+
+            markers.shipper = L.marker([0,0], {icon: iconShipper, rotationAngle: 0}).addTo(map).bindPopup("Shipper");
+            markers.restaurant = L.marker([0,0], {icon: iconRest}).addTo(map).bindPopup("<b>Nhà hàng</b><br>@Model.DonHang.TenNH");
+            markers.customer = L.marker([0,0], {icon: iconCust}).addTo(map).bindPopup("<b>Khách hàng</b><br>@Model.DonHang.DiaChi");
+
+            updateTracking();
+
+            setInterval(updateTracking, 15000);
+        }
+
+        function updateTracking() {
+            $.getJSON("/KhachHang/GetTrackingInfo?maDon=" + maDon, function(res) {
+                if(res.success) {
+                    if(res.restaurant && res.restaurant.lat != 0) {
+                        markers.restaurant.setLatLng([res.restaurant.lat, res.restaurant.lng]);
+                    }
+                    if(res.customer && res.customer.lat != 0) {
+                        markers.customer.setLatLng([res.customer.lat, res.customer.lng]);
+                    }
+
+                    if(res.shipper && res.shipper.lat != 0) {
+                        var newLatLng = [res.shipper.lat, res.shipper.lng];
+                        var oldLatLng = markers.shipper.getLatLng();
+
+                        if(oldLatLng.lat != 0 && (oldLatLng.lat != newLatLng[0] || oldLatLng.lng != newLatLng[1])) {
+                            var angle = calculateAngle(oldLatLng.lat, oldLatLng.lng, newLatLng[0], newLatLng[1]);
+                            markers.shipper.setRotationAngle(angle);
+                        }
+
+                        markers.shipper.setLatLng(newLatLng);
+
+                        drawRoute();
+                    }
+                }
+            });
+        }
+
+        function drawRoute() {
+            $.getJSON("/KhachHang/GetShipperRoute?maDon=" + maDon, function(res) {
+                if(res.success && res.route && res.route.length > 0) {
+
+                    $("#distance-display").text(res.distanceText);
+                    $("#duration-display").text(res.durationText);
+                    $("#route-status-text").text(res.statusText);
+
+                    if(routeLine) map.removeLayer(routeLine);
+
+                    var latlngs = res.route.map(function(p) { return [p.lat, p.lng]; });
+
+                    var lineColor = '#0d6efd'; // Blue (To Restaurant)
+                    if (res.routeType === "ToCustomer") {
+                        lineColor = '#198754'; // Green (To Customer)
+                    }
+
+                    routeLine = L.polyline(latlngs, {
+                        color: lineColor,
+                        weight: 6,
+                        opacity: 0.8,
+                        lineCap: 'round'
+                    }).addTo(map);
+
+                    if(!isMapInit) {
+                        map.fitBounds(routeLine.getBounds(), {padding: [50, 50]});
+                        isMapInit = true;
+                    }
+                }
+            });
+        }
+
+        function calculateAngle(lat1, lng1, lat2, lng2) {
+            if (map) {
+                var p1 = map.latLngToContainerPoint([lat1, lng1]);
+                var p2 = map.latLngToContainerPoint([lat2, lng2]);
+                return Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+            }
+            return 0;
+        }
+
+        $(document).ready(function() {
+            initMap();
+            
+            var currentStatus = "@Model.DonHang.TrangThai";
+            function checkOrderStatus() {
+                $.getJSON("/KhachHang/GetOrderStatus?maDon=" + maDon, function(res) {
+                    if(res.success && res.status !== currentStatus) {
+                        Swal.fire({
+                            title: 'Cập nhật trạng thái!',
+                            text: 'Đơn hàng của bạn đã chuyển sang trạng thái: ' + res.status,
+                            icon: 'info',
+                            timer: 3000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                        currentStatus = res.status;
+                    }
+                });
+            }
+            setInterval(checkOrderStatus, 15000);
+        });
+    </script>
+}

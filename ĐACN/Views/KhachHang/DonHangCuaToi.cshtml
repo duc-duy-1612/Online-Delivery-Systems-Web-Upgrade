@@ -1,0 +1,343 @@
+@model ĐACN.Models.DonHangTongHopViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Đơn hàng của tôi";
+}
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    .order-page-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        color: white;
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 2rem 2rem;
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.15);
+        text-align: center;
+    }
+    
+    .custom-tabs {
+        border-bottom: none;
+        gap: 15px;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    .custom-tabs .nav-link {
+        border: none;
+        background: #fff;
+        color: #6c757d;
+        border-radius: 30px;
+        padding: 12px 30px;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .custom-tabs .nav-link:hover {
+        background: #f8f9fa;
+        transform: translateY(-2px);
+    }
+    .custom-tabs .nav-link.active {
+        background: #0d6efd;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3);
+    }
+    
+    .order-card {
+        background: #fff;
+        border-radius: 1.25rem;
+        border: none;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .order-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    }
+    
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px dashed #e9ecef;
+    }
+    
+    .order-id {
+        font-weight: 800;
+        color: #2b2b2b;
+        font-size: 1.1rem;
+    }
+    
+    .order-time {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .order-total {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #dc3545;
+    }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+    .status-cho-xac-nhan { background: #e9ecef; color: #495057; }
+    .status-dang-lay-mon { background: #cff4fc; color: #055160; }
+    .status-dang-giao { background: #fff3cd; color: #856404; }
+    .status-hoan-thanh { background: #d1e7dd; color: #0f5132; }
+    .status-da-huy { background: #f8d7da; color: #842029; }
+    
+    .btn-order-action {
+        border-radius: 0.75rem;
+        padding: 8px 20px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+</style>
+
+<div class="order-page-header">
+    <div class="container">
+        <h1 class="fw-bold mb-2"><i class="fas fa-clipboard-list me-3"></i>Đơn Hàng Của Tôi</h1>
+        <p class="mb-0 opacity-75 fs-5">Theo dõi hành trình những bữa ăn ngon của bạn</p>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <ul class="nav nav-tabs custom-tabs" id="orderTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="processing-tab" data-bs-toggle="tab" data-bs-target="#processing" type="button">
+                <i class="fas fa-motorcycle me-2"></i>Đang xử lý
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button">
+                <i class="fas fa-history me-2"></i>Lịch sử đơn hàng
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-4">
+        <!-- TAB ĐANG XỬ LÝ -->
+        <div class="tab-pane fade show active" id="processing">
+            @if (Model == null || Model.DonHangDangXuLy == null || !Model.DonHangDangXuLy.Any())
+            {
+                <div class="text-center py-5 bg-white rounded-4 shadow-sm border-0">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2748/2748558.png" style="width:120px; opacity:0.5" class="mb-4" />
+                    <h4 class="text-dark fw-bold mb-3">Chưa có đơn hàng nào đang xử lý</h4>
+                    <p class="text-muted mb-0">Hãy đặt món để lấp đầy chiếc bụng đói nhé!</p>
+                </div>
+            }
+            else
+            {
+                <div class="row row-cols-1 row-cols-lg-2 g-4">
+                    @foreach (var item in Model.DonHangDangXuLy)
+                    {
+                        string badgeClass = "status-cho-xac-nhan";
+                        if (item.TrangThai == "Đang lấy món") { badgeClass = "status-dang-lay-mon"; }
+                        else if (item.TrangThai == "Đang giao") { badgeClass = "status-dang-giao"; }
+                        
+                        <div class="col">
+                            <div class="order-card">
+                                <div class="order-header">
+                                    <div>
+                                        <div class="order-id"><i class="fas fa-hashtag text-muted me-1"></i>@item.MaDon</div>
+                                        <div class="order-time"><i class="far fa-clock me-1"></i>@(item.ThoiGianDat?.ToString("dd/MM/yyyy HH:mm") ?? "-")</div>
+                                    </div>
+                                    <span class="status-badge @badgeClass">@item.TrangThai</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center pt-2">
+                                    <div>
+                                        <div class="text-muted small fw-bold mb-1">TỔNG TIỀN</div>
+                                        <div class="order-total">@String.Format("{0:N0}₫", item.TongTien)</div>
+                                    </div>
+                                    <a href="@Url.Action("TheoDoiDonHang", "KhachHang", new { maDon = item.MaDon })" class="btn btn-primary btn-order-action shadow-sm">
+                                        Theo dõi đơn <i class="fas fa-arrow-right ms-2"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- TAB LỊCH SỬ -->
+        <div class="tab-pane fade" id="history">
+            @if (Model == null || Model.LichSuDonHang == null || !Model.LichSuDonHang.Any())
+            {
+                <div class="text-center py-5 bg-white rounded-4 shadow-sm border-0">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2748/2748558.png" style="width:120px; opacity:0.5" class="mb-4" />
+                    <h4 class="text-dark fw-bold mb-3">Lịch sử đơn hàng trống</h4>
+                    <p class="text-muted mb-0">Những kỷ niệm ăn uống của bạn sẽ xuất hiện ở đây.</p>
+                </div>
+            }
+            else
+            {
+                <div class="row row-cols-1 row-cols-lg-2 g-4">
+                    @foreach (var item in Model.LichSuDonHang)
+                    {
+                        string badgeClass = item.TrangThai == "Hoàn thành" ? "status-hoan-thanh" : "status-da-huy";
+                        
+                        <div class="col">
+                            <div class="order-card">
+                                <div class="order-header">
+                                    <div>
+                                        <div class="order-id"><i class="fas fa-hashtag text-muted me-1"></i>@item.MaDon</div>
+                                        <div class="order-time"><i class="far fa-clock me-1"></i>@(item.ThoiGianDat?.ToString("dd/MM/yyyy HH:mm") ?? "-")</div>
+                                    </div>
+                                    <span class="status-badge @badgeClass">@item.TrangThai</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center pt-2">
+                                    <div>
+                                        <div class="text-muted small fw-bold mb-1">TỔNG TIỀN</div>
+                                        <div class="order-total text-dark">@String.Format("{0:N0}₫", item.TongTien)</div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <a href="@Url.Action("TheoDoiDonHang", "KhachHang", new { maDon = item.MaDon })" class="btn btn-light btn-order-action border">
+                                            Chi tiết
+                                        </a>
+                                        @if (item.TrangThai == "Hoàn thành")
+                                        {
+                                            <button class="btn btn-warning text-dark btn-order-action shadow-sm" onclick="moDanhGiaNhaHang('@item.MaDon')">
+                                                <i class="fas fa-star me-1"></i> Đánh giá
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    function moDanhGiaNhaHang(maDon) {
+        $.getJSON('/KhachHang/LayThongTinDanhGiaNhaHang?maDon=' + maDon, function(response) {
+            if (response.success && response.danhGia) {
+                var danhGia = response.danhGia;
+                
+                $('#ratingNHMaDon').val(danhGia.maDon);
+                $('#ratingNHMaNH').val(danhGia.maNH);
+                $('#ratingNHMaDonDisplay').text(danhGia.maDon);
+                $('#ratingNHTenNhaHang').text(danhGia.tenNhaHang);
+                $('#ratingNHThoiGian').text(danhGia.thoiGian);
+                
+                if (danhGia.soSaoCu) {
+                    $('#ratingNHSoSao').val(danhGia.soSaoCu);
+                    $('#ratingNHSoSaoDisplay').text(danhGia.soSaoCu);
+                    
+                    if (typeof currentRatingNH !== 'undefined') {
+                        currentRatingNH = danhGia.soSaoCu;
+                    }
+                    $('.rating-nh-star').each(function () {
+                        var rating = $(this).data('rating');
+                        if (rating <= danhGia.soSaoCu) {
+                            $(this).addClass('active');
+                            $(this).css('filter', 'none');
+                            $(this).css('opacity', '1');
+                        } else {
+                            $(this).removeClass('active');
+                            $(this).css('filter', 'grayscale(100%)');
+                            $(this).css('opacity', '0.3');
+                        }
+                    });
+                    $('#btnLuuDanhGiaNH').prop('disabled', false);
+                } else {
+                    if (typeof currentRatingNH !== 'undefined') {
+                        currentRatingNH = 0;
+                    }
+                    $('#ratingNHSoSao').val(0);
+                    $('#ratingNHSoSaoDisplay').text('0');
+                    $('.rating-nh-star').removeClass('active').css('filter', 'grayscale(100%)').css('opacity', '0.3');
+                    $('#btnLuuDanhGiaNH').prop('disabled', true);
+                }
+                
+                if (danhGia.binhLuanCu) {
+                    $('#ratingNHBinhLuan').val(danhGia.binhLuanCu);
+                } else {
+                    $('#ratingNHBinhLuan').val('');
+                }
+                
+                $('#danhGiaNhaHangModal').removeData('already-processed');
+                $('#danhGiaNhaHangModal').data('from-history-page', true); // Đánh dấu là từ lịch sử
+                $('#danhGiaNhaHangModal').removeData('saved-success');
+                if (typeof isProcessingNH !== 'undefined') {
+                    isProcessingNH = false;
+                }
+                
+                $('#btnLuuDanhGiaNH').off('click').on('click', function() {
+                    var maDon = $('#ratingNHMaDon').val();
+                    var maNH = $('#ratingNHMaNH').val();
+                    var soSao = parseInt($('#ratingNHSoSao').val());
+                    var binhLuan = $('#ratingNHBinhLuan').val();
+
+                    if (soSao < 1 || soSao > 5) {
+                        Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng chọn số sao từ 1 đến 5!' });
+                        return;
+                    }
+
+                    var token = $('input[name="__RequestVerificationToken"]').val();
+
+                    $.ajax({
+                        url: '/KhachHang/LuuDanhGiaNhaHang',
+                        type: 'POST',
+                        data: {
+                            maDon: maDon,
+                            maNH: maNH,
+                            soSao: soSao,
+                            binhLuan: binhLuan,
+                            __RequestVerificationToken: token
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                $('#danhGiaNhaHangModal').data('saved-success', true);
+                                $('#danhGiaNhaHangModal').data('already-processed', true);
+                                if (typeof isProcessingNH !== 'undefined') {
+                                    isProcessingNH = true;
+                                }
+                                
+                                var modal = bootstrap.Modal.getInstance(document.getElementById('danhGiaNhaHangModal'));
+                                if (modal) modal.hide();
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Lỗi', text: response.message || 'Có lỗi xảy ra khi lưu đánh giá!' });
+                            }
+                        },
+                        error: function () {
+                            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi gửi đánh giá. Vui lòng thử lại!' });
+                        }
+                    });
+                });
+                
+                var modal = new bootstrap.Modal(document.getElementById('danhGiaNhaHangModal'));
+                modal.show();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải thông tin đơn hàng!' });
+            }
+        }).fail(function() {
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi tải thông tin!' });
+        });
+    }
+    
+    $(document).ready(function() {
+        $('#danhGiaNhaHangModal').on('hidden.bs.modal', function() {
+            var isFromHistory = $(this).data('from-history-page');
+            if (isFromHistory && $(this).data('saved-success')) {
+                location.reload();
+            }
+        });
+    });
+</script>

@@ -1,0 +1,72 @@
+@model IEnumerable<ĐACN.MonAn>
+
+
+@{
+    ViewBag.Title = "Tìm món ăn";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .food-card {
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 1px solid rgba(0,0,0,0.03);
+    }
+    .food-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(255, 75, 43, 0.15);
+        border-color: rgba(255, 75, 43, 0.2);
+    }
+    .btn-gradient {
+        background: linear-gradient(135deg, #ff416c, #ff4b2b);
+        color: white;
+        border: none;
+        transition: transform 0.3s ease;
+    }
+    .btn-gradient:hover {
+        transform: scale(1.05);
+        color: white;
+    }
+</style>
+
+<div class="container mt-5">
+    <h4 class="fw-bold mb-4" style="color: #ff4b2b;"><i class="fa-solid fa-magnifying-glass me-2"></i>Kết quả tìm kiếm cho "@ViewBag.Keyword"</h4>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center text-muted py-5 bg-white" style="border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <i class="fa-regular fa-face-frown fs-1 d-block mb-3 text-secondary"></i>
+            <h5 class="fw-bold">Không tìm thấy món ăn nào phù hợp.</h5>
+            <p>Vui lòng thử lại bằng từ khóa khác!</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var mon in Model)
+            {
+                <div class="col-6 col-md-4 col-lg-3 mb-4">
+                    <div class="food-card h-100 d-flex flex-column p-3">
+                        <div class="d-flex flex-column flex-grow-1">
+                            <h6 class="fw-bold text-dark mb-2">@mon.TenMon</h6>
+                            <p class="text-muted small mb-2">
+                                <i class="fa-solid fa-shop me-1 text-secondary"></i> @(mon.NhaHang != null ? mon.NhaHang.TenNH : "Không rõ")
+                            </p>
+                            <p class="small text-secondary mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">@mon.MoTa</p>
+                        </div>
+                        <div class="mt-auto">
+                            <p class="fw-bold text-danger mb-3 fs-5">
+                                @(mon.Gia.HasValue ? mon.Gia.Value.ToString("N0") : "0") ₫
+                            </p>
+                            <a href="@Url.Action("XemMenu", "KhachHang", new { id = mon.MaNH })" class="btn btn-gradient w-100 rounded-pill fw-bold">
+                                Tới nhà hàng
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

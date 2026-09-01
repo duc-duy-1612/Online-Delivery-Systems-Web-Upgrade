@@ -1,0 +1,172 @@
+@model ĐACN.KhachHang
+
+@{
+    ViewBag.Title = "Hồ sơ cá nhân";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    .profile-card {
+        border: none;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+    }
+    .profile-header {
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 0%, rgba(13, 110, 253, 0.01) 100%);
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .avatar-wrapper {
+        position: relative;
+        display: inline-block;
+        padding: 6px;
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        border-radius: 50%;
+        transition: transform 0.3s ease;
+    }
+    .avatar-wrapper:hover {
+        transform: scale(1.05);
+    }
+    .avatar-wrapper img {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border: 4px solid #fff;
+        border-radius: 50%;
+    }
+    .btn-change-avatar {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        background: #fff;
+        color: #0d6efd;
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-change-avatar:hover {
+        background: #0d6efd;
+        color: #fff;
+    }
+    .form-floating > .form-control {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1rem 0.75rem;
+        height: calc(3.5rem + 2px);
+    }
+    .form-floating > .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+    }
+    .form-floating > textarea.form-control {
+        height: 100px;
+    }
+    .btn-save {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        border: none;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        padding: 12px 20px;
+        transition: all 0.3s ease;
+    }
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3);
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            @if (TempData["Msg"] != null)
+            {
+                <div class="alert alert-info alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                    <i class="fas fa-info-circle me-2 text-primary"></i> @TempData["Msg"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <div class="card profile-card">
+                <div class="card-header profile-header pt-4 pb-3">
+                    <h4 class="card-title fw-bold text-primary mb-0 text-center"><i class="fas fa-user-edit me-2"></i>Thông tin cá nhân</h4>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    @using (Html.BeginForm("CapNhatHoSo", "KhachHang", FormMethod.Post, new { enctype = "multipart/form-data" }))
+                    {
+                        <div class="row align-items-center">
+                            <div class="col-md-4 text-center mb-5 mb-md-0">
+                                <div class="avatar-wrapper shadow-sm mb-3">
+                                    <img id="previewImg"
+                                         src="@(string.IsNullOrEmpty(Model.HinhAnh) ? "/images/default-avatar.png" : Model.HinhAnh)"
+                                         alt="Avatar">
+                                    <label for="hinhAnhUpload" class="btn-change-avatar" title="Đổi ảnh đại diện">
+                                        <i class="fas fa-camera"></i>
+                                    </label>
+                                </div>
+                                <input type="file" name="hinhAnh" id="hinhAnhUpload" class="d-none" accept="image/*" onchange="previewFile(this)">
+                                <div class="text-muted small px-3">
+                                    <i class="fas fa-info-circle me-1"></i>Dung lượng tối đa 5MB<br>Định dạng: JPG, PNG
+                                </div>
+                            </div>
+
+                            <div class="col-md-8">
+                                <div class="form-floating mb-4">
+                                    <input type="text" class="form-control" id="tenKH" name="tenKH" value="@Model.TenKH" placeholder="Họ và tên" required>
+                                    <label for="tenKH"><i class="fas fa-id-card me-2 text-secondary"></i>Họ và tên</label>
+                                </div>
+
+                                <div class="form-floating mb-4">
+                                    <input type="text" class="form-control" id="sdt" name="sdt" value="@Model.SDT" placeholder="Số điện thoại" pattern="[0-9]{10,11}" title="SĐT phải từ 10-11 số" required>
+                                    <label for="sdt"><i class="fas fa-phone-alt me-2 text-secondary"></i>Số điện thoại liên hệ</label>
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <textarea class="form-control" id="diaChi" name="diaChi" placeholder="Địa chỉ giao hàng mặc định">@Model.DiaChi</textarea>
+                                    <label for="diaChi"><i class="fas fa-map-marker-alt me-2 text-danger"></i>Địa chỉ giao hàng</label>
+                                </div>
+                                
+                                <div class="form-text text-muted small mb-4 ms-2">
+                                    <i class="fas fa-street-view me-1 text-success"></i>Hệ thống tự động cập nhật tọa độ GPS theo địa chỉ.
+                                </div>
+
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-primary btn-save btn-lg text-white">
+                                        <i class="fas fa-check-circle me-2"></i>Cập nhật hồ sơ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function previewFile(input) {
+        var file = input.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function () {
+                $("#previewImg").attr("src", reader.result);
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+</script>

@@ -1,0 +1,199 @@
+@model ĐACN.NhaHang
+
+@{
+    ViewBag.Title = "Chi tiết cửa hàng";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    bool isEdit = ViewBag.EditMode == true;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="color: #111827;">Hồ sơ đối tác nhà hàng</h2>
+        <p class="text-muted mb-0">Xem và cập nhật thông tin cửa hàng: <span class="text-dark fw-medium">#@Model.MaNH</span></p>
+    </div>
+    <a href="@Url.Action("DanhSachCuaHang", "Admin")" class="btn btn-light fw-medium px-4" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+        Trở lại danh sách
+    </a>
+</div>
+
+<div class="row">
+    @using (Html.BeginForm("SuaNhaHang", "Admin", FormMethod.Post, new { enctype = "multipart/form-data", @class = "row w-100 m-0" }))
+    {
+        @Html.HiddenFor(m => m.MaNH)
+
+        <!-- Cột bên trái: Ảnh đại diện & Thông tin chung -->
+        <div class="col-lg-4 mb-4">
+            <div class="admin-card border-0 h-100 text-center">
+                <div class="position-relative d-inline-block mb-3 mt-3">
+                    <img src="@(string.IsNullOrEmpty(Model.HinhAnh)
+                        ? Url.Content("~/images/nhahang/comtam_saigon.jpg")
+                        : (Model.HinhAnh.StartsWith("~/") ? Url.Content(Model.HinhAnh) : Url.Content("~/images/nhahang/" + Model.HinhAnh)))"
+                         alt="Hình nhà hàng"
+                         onerror="this.onerror=null; this.src='@Url.Content("~/images/nhahang/comtam_saigon.jpg")'"
+                         style="width: 200px; height: 200px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"
+                         id="previewNhaHang" />
+
+                    @if (isEdit)
+                    {
+                        <label for="HinhAnhFile"
+                               class="position-absolute d-flex justify-content-center align-items-center bg-dark text-white shadow"
+                               style="cursor:pointer; width: 40px; height: 40px; border-radius: 50%; right: -10px; bottom: -10px;">
+                            <span style="font-size: 1.2rem; line-height: 1;">+</span>
+                        </label>
+                        <input type="file" id="HinhAnhFile" name="HinhAnhFile" accept="image/*" class="d-none" onchange="previewNhaHangImage(event)" />
+                    }
+                </div>
+
+                <h4 class="fw-bold mt-2 mb-1" style="color: #111827;">@Model.TenNH</h4>
+                <div class="text-muted small mb-3">Tham gia: @(Model.TaiKhoan?.TenDangNhap ?? "N/A")</div>
+                
+                <div class="bg-light rounded p-3 text-start">
+                    <div class="mb-2">
+                        <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase;">Trạng thái kinh doanh</div>
+                        <div class="fw-medium text-dark mt-1">@Model.TrangThai</div>
+                    </div>
+                    <div>
+                        <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase;">Trạng thái tài khoản</div>
+                        @if (Model.TaiKhoan?.TrangThai == true)
+                        {
+                            <div class="fw-bold text-success mt-1">Đang hoạt động</div>
+                        }
+                        else
+                        {
+                            <div class="fw-bold text-danger mt-1">Đã bị khóa</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột bên phải: Form chi tiết -->
+        <div class="col-lg-8 mb-4">
+            <div class="admin-card border-0 h-100">
+                <h5 class="fw-bold border-bottom pb-3 mb-4" style="color: #111827;">Thông tin chi tiết</h5>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Tên cửa hàng</label>
+                        @if (isEdit)
+                        {
+                            @Html.TextBoxFor(m => m.TenNH, new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3", required = "required" })
+                        }
+                        else
+                        {
+                            <div class="p-3 bg-light rounded-3 text-dark fw-medium">@Model.TenNH</div>
+                        }
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Số điện thoại</label>
+                        @if (isEdit)
+                        {
+                            @Html.TextBoxFor(m => m.SDT, new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3" })
+                        }
+                        else
+                        {
+                            <div class="p-3 bg-light rounded-3 text-dark fw-medium">@Model.SDT</div>
+                        }
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Địa chỉ</label>
+                        @if (isEdit)
+                        {
+                            @Html.TextBoxFor(m => m.DiaChi, new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3", required = "required" })
+                        }
+                        else
+                        {
+                            <div class="p-3 bg-light rounded-3 text-dark fw-medium">@Model.DiaChi</div>
+                        }
+                    </div>
+                    
+                    @if (isEdit)
+                    {
+                        <div class="col-md-6">
+                            <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Trạng thái cửa hàng</label>
+                            <select name="TrangThai" class="form-select bg-light border-0 shadow-none p-3 rounded-3">
+                                <option value="Đang mở cửa" @(Model.TrangThai == "Đang mở cửa" ? "selected" : "")>Đang mở cửa</option>
+                                <option value="Đã đóng cửa" @(Model.TrangThai == "Đã đóng cửa" ? "selected" : "")>Đã đóng cửa</option>
+                            </select>
+                        </div>
+                    }
+                </div>
+
+                <h5 class="fw-bold border-bottom pb-3 mb-4" style="color: #111827; margin-top: 2rem;">Thông tin bảo mật</h5>
+
+                <div class="row g-4 mb-5">
+                    <div class="col-md-6">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Tên đăng nhập</label>
+                        @if (isEdit)
+                        {
+                            @Html.TextBox("TenDangNhap", Model.TaiKhoan != null ? Model.TaiKhoan.TenDangNhap : "", new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3", required = "required" })
+                        }
+                        else
+                        {
+                            <div class="p-3 bg-light rounded-3 text-dark fw-medium">@(Model.TaiKhoan != null ? Model.TaiKhoan.TenDangNhap : "Chưa có")</div>
+                        }
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Mật khẩu</label>
+                        @if (isEdit)
+                        {
+                            <input type="password" name="MatKhau" value="@(Model.TaiKhoan?.MatKhau)" class="form-control bg-light border-0 shadow-none p-3 rounded-3" placeholder="Nhập mật khẩu mới..." />
+                        }
+                        else
+                        {
+                            <div class="p-3 bg-light rounded-3 text-dark fw-medium">*** Đã ẩn ***</div>
+                        }
+                    </div>
+
+                    @if (isEdit)
+                    {
+                        <div class="col-md-6">
+                            <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Trạng thái tài khoản</label>
+                            <select name="TrangThaiTaiKhoan" class="form-select bg-light border-0 shadow-none p-3 rounded-3">
+                                <option value="true" @(Model.TaiKhoan?.TrangThai == true ? "selected" : "")>Hoạt động</option>
+                                <option value="false" @(Model.TaiKhoan?.TrangThai == false ? "selected" : "")>Bị khóa</option>
+                            </select>
+                        </div>
+                    }
+                </div>
+
+                <div class="d-flex justify-content-end gap-3 pt-3 border-top">
+                    @if (!isEdit)
+                    {
+                        <a href="@Url.Action("ChiTietNhaHang", "Admin", new { id = Model.MaNH, edit = true })" class="btn btn-dark btn-modern px-4">
+                            Chỉnh sửa hồ sơ
+                        </a>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("ChiTietNhaHang", "Admin", new { id = Model.MaNH })" class="btn btn-light fw-medium px-4" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+                            Hủy bỏ
+                        </a>
+                        <button type="submit" class="btn btn-success btn-modern px-4">
+                            Lưu thay đổi
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm mt-3 text-center fw-bold" style="border-radius: 8px; background-color: #d1fae5; color: #065f46;">
+        @TempData["Message"]
+    </div>
+}
+
+<script>
+    function previewNhaHangImage(event) {
+        const input = event.target;
+        const reader = new FileReader();
+        reader.onload = function () {
+            document.getElementById("previewNhaHang").src = reader.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+</script>

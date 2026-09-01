@@ -1,0 +1,178 @@
+@{
+    ViewBag.Title = "Thanh toán chuyển khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    .payment-receipt {
+        border: none;
+        border-radius: 1rem 1rem 0 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        background: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+    /* Jagged edge effect for receipt */
+    .receipt-edge {
+        height: 15px;
+        background: linear-gradient(-45deg, transparent 10px, #fff 0), linear-gradient(45deg, transparent 10px, #fff 0);
+        background-repeat: repeat-x;
+        background-size: 20px 20px;
+        background-position: left bottom;
+        filter: drop-shadow(0px 10px 10px rgba(0,0,0,0.05));
+        margin-bottom: 2rem;
+    }
+    .payment-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        color: white;
+        padding: 25px 20px;
+        text-align: center;
+        border-radius: 1rem 1rem 0 0;
+        position: relative;
+    }
+    .payment-header::after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        left: 0;
+        right: 0;
+        height: 30px;
+        background: #fff;
+        border-radius: 50% 50% 0 0;
+    }
+    .amount-text {
+        color: #dc3545;
+        font-size: 2.2rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+    .qr-frame {
+        background-color: #fff;
+        padding: 15px;
+        border: 2px dashed #0d6efd;
+        border-radius: 1rem;
+        display: inline-block;
+        margin: 20px 0;
+        position: relative;
+        animation: pulse-border 2s infinite;
+    }
+    @@keyframes pulse-border {
+        0% { border-color: rgba(13, 110, 253, 0.4); box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4); }
+        70% { border-color: rgba(13, 110, 253, 1); box-shadow: 0 0 0 15px rgba(13, 110, 253, 0); }
+        100% { border-color: rgba(13, 110, 253, 0.4); box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+    }
+    .scanner-line {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        right: 15px;
+        height: 2px;
+        background: rgba(13, 110, 253, 0.8);
+        box-shadow: 0 0 10px rgba(13, 110, 253, 0.8);
+        animation: scan 3s linear infinite;
+    }
+    @@keyframes scan {
+        0% { top: 15px; opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { top: calc(100% - 17px); opacity: 0; }
+    }
+    .bank-info {
+        background: rgba(248, 249, 250, 0.8);
+        border-radius: 0.75rem;
+        padding: 20px;
+        text-align: left;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        border: 1px solid #e2e8f0;
+    }
+    .bank-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        border-bottom: 1px dashed #e2e8f0;
+        padding-bottom: 8px;
+    }
+    .bank-info-row:last-child {
+        margin-bottom: 0;
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    .btn-confirm {
+        background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+        border: none;
+        color: white;
+        transition: all 0.3s ease;
+    }
+    .btn-confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(25, 135, 84, 0.3);
+        color: white;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="payment-receipt">
+                <div class="payment-header">
+                    <h4 class="mb-1 fw-bold"><i class="fas fa-qrcode me-2"></i>Thanh Toán</h4>
+                    <p class="mb-0 opacity-75 small">Mã đơn: <strong class="text-white">@ViewBag.MaDon</strong></p>
+                </div>
+
+                <div class="card-body text-center px-4 pt-5 pb-4">
+                    <p class="text-muted mb-1 text-uppercase fw-bold" style="font-size: 0.85rem; letter-spacing: 1px;">Tổng tiền thanh toán</p>
+                    <div class="amount-text mb-2">@String.Format("{0:N0} ₫", ViewBag.TongTien)</div>
+
+                    <div class="qr-frame">
+                        <div class="scanner-line"></div>
+                        <img src="@ViewBag.QRCode" alt="QR Code Thanh Toán" class="img-fluid" style="max-width: 250px; height: auto; position: relative; z-index: 2;" />
+                    </div>
+
+                    <div class="bank-info mt-3">
+                        <div class="bank-info-row">
+                            <span class="text-muted"><i class="fas fa-university me-2 text-primary"></i>Ngân hàng:</span>
+                            <span class="fw-bold">MB Bank</span>
+                        </div>
+                        <div class="bank-info-row">
+                            <span class="text-muted"><i class="fas fa-credit-card me-2 text-primary"></i>Số tài khoản:</span>
+                            <span class="fw-bold">0000 1234 5678</span>
+                        </div>
+                        <div class="bank-info-row">
+                            <span class="text-muted"><i class="fas fa-user-circle me-2 text-primary"></i>Chủ tài khoản:</span>
+                            <span class="fw-bold">ZFOOD COMPANY</span>
+                        </div>
+                        <div class="bank-info-row">
+                            <span class="text-muted"><i class="fas fa-comment-alt me-2 text-primary"></i>Nội dung CK:</span>
+                            <span class="fw-bold text-danger">@ViewBag.MaDon</span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning d-flex align-items-center rounded-3 border-0 shadow-sm" role="alert">
+                        <i class="fas fa-exclamation-circle me-3 fs-3 text-warning"></i>
+                        <div class="small text-start">
+                            Sau khi chuyển khoản, vui lòng bấm nút <strong>"Xác nhận đã thanh toán"</strong> để hoàn tất.
+                        </div>
+                    </div>
+
+                    @using (Html.BeginForm("XacNhanThanhToanQR", "KhachHang", FormMethod.Post))
+                    {
+                        @Html.Hidden("maDon", (string)ViewBag.MaDon)
+                        <div class="d-grid gap-3 mt-4">
+                            <button type="submit" class="btn btn-confirm btn-lg fw-bold shadow-sm rounded-pill py-3">
+                                <i class="fas fa-check-circle me-2"></i> Xác nhận đã thanh toán
+                            </button>
+                            <a href="@Url.Action("DonHangCuaToi", "KhachHang")" class="btn btn-light btn-lg fw-bold rounded-pill text-secondary border">
+                                Để sau, xem đơn hàng
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="receipt-edge"></div>
+        </div>
+    </div>
+</div>

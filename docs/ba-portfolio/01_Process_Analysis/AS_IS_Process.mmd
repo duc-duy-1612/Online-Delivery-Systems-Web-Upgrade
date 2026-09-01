@@ -1,0 +1,48 @@
+%% Online Food Delivery System — AS-IS Cross-Role Process Flow
+%% Status: APPROVED
+%% Version: 1.0
+%% Visual source: AS_IS_Process.md — APPROVED v1.0
+%% Evidence classification: ASSUMPTION
+%% This is a case-study baseline and was not validated through formal stakeholder interviews.
+%% Do not treat this Mermaid visual as BPMN 2.0.
+
+flowchart TB
+
+    subgraph CUSTOMER["Customer"]
+        direction LR
+        C1["Customer contacts Restaurant<br/>(phone / messaging)"]
+        C2["Waits for delivery"]
+        C3["Limited delivery-status visibility<br/>('Black box')"]
+
+        C2 -.-> C3
+    end
+
+    subgraph RESTAURANT["Restaurant"]
+        direction LR
+        R1["Receives order request"]
+        R2["Records order manually<br/>(paper / standalone Excel)"]
+        R3["Contacts Shippers manually<br/>(calls / messaging / chat groups)"]
+
+        R1 --> R2 --> R3
+    end
+
+    subgraph SHIPPER["Shipper"]
+        direction LR
+        S1["Receives delivery request"]
+        S2["Performs delivery"]
+
+        S1 --> S2
+    end
+
+    D1["Fragmented / separate operational<br/>& historical records"]
+
+    %% Primary cross-role process
+    C1 -- "Order request / information" --> R1
+    R3 -- "Delivery request / details" --> S1
+
+    %% Customer condition during delivery
+    S2 -. "During delivery" .-> C2
+
+    %% Fragmented records
+    R2 -. "Separate records" .-> D1
+    S2 -. "Records as applicable" .-> D1

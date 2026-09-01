@@ -1,0 +1,295 @@
+@{
+    string currentUserId = "";
+    string currentUserName = "";
+
+    if (Session["KhachHang"] != null)
+    {
+        var kh = Session["KhachHang"] as ĐACN.KhachHang;
+        currentUserId = "KH_" + kh.MaKH;
+        currentUserName = kh.TenKH;
+    }
+    else if (Session["NhaHang"] != null)
+    {
+        var nh = Session["NhaHang"] as ĐACN.NhaHang;
+        currentUserId = "NH_" + nh.MaNH;
+        currentUserName = nh.TenNH;
+    }
+    else if (Session["Shipper"] != null)
+    {
+        var sh = Session["Shipper"] as ĐACN.Shipper;
+        currentUserId = "SH_" + sh.MaShipper;
+        currentUserName = sh.TenShipper;
+    }
+}
+
+@if (!string.IsNullOrEmpty(currentUserId))
+{
+    <style>
+        #chatWidget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 450px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            z-index: 1050;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .chat-header .btn-close {
+            filter: invert(1);
+            opacity: 0.8;
+            font-size: 0.8rem;
+        }
+
+        .chat-body {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .msg-me {
+            align-self: flex-end;
+            background: #0d6efd;
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg-partner {
+            align-self: flex-start;
+            background: #e9ecef;
+            color: #212529;
+            border-bottom-left-radius: 2px;
+        }
+
+        .chat-footer {
+            padding: 10px;
+            border-top: 1px solid #dee2e6;
+            background: #fff;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-footer input {
+            border-radius: 20px;
+            padding-left: 15px;
+        }
+        
+        .chat-footer button {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #chatBadge {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #0d6efd;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+            cursor: pointer;
+            z-index: 1040;
+            font-size: 1.5rem;
+            display: none;
+            transition: transform 0.2s;
+        }
+        #chatBadge:hover {
+            transform: scale(1.1);
+        }
+        .unread-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 50%;
+            border: 2px solid white;
+            display: none;
+        }
+    </style>
+
+    <div id="chatBadge" onclick="toggleChat()">
+        <i class="bi bi-chat-dots-fill" style="margin-top: 2px;"></i>
+        <span class="unread-count" id="unreadCount">0</span>
+    </div>
+
+    <div id="chatWidget">
+        <div class="chat-header">
+            <div>
+                <i class="bi bi-person-circle me-2"></i>
+                <span id="chatPartnerName">Hỗ trợ</span>
+            </div>
+            <button type="button" class="btn-close" onclick="toggleChat()"></button>
+        </div>
+        <div class="chat-body" id="chatMessages">
+            <div class="text-center text-muted small py-2">Bắt đầu cuộc trò chuyện</div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chatInput" class="form-control" placeholder="Nhập tin nhắn..." onkeypress="handleChatEnter(event)">
+            <button class="btn btn-primary" onclick="sendChatMessage()">
+                <i class="bi bi-send-fill" style="margin-left: -2px;"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        var currentUserId = '@currentUserId';
+        var currentUserName = '@Html.Raw(currentUserName)';
+        var activeChatPartnerId = '';
+        var activeChatMaDon = '';
+        var lastChatTimestamp = 0;
+        var chatPollingInterval = null;
+
+        function openChat(partnerId, partnerName, maDon) {
+            activeChatPartnerId = partnerId;
+            activeChatMaDon = maDon;
+            $('#chatPartnerName').text(partnerName);
+            $('#chatWidget').css('display', 'flex');
+            $('#chatBadge').hide();
+            $('#unreadCount').hide().text('0');
+            
+            // Clear old messages and reset timestamp if switching partner
+            $('#chatMessages').html('');
+            lastChatTimestamp = 0;
+            
+            pollMessages(); // Fetch immediately
+            
+            if (chatPollingInterval) clearInterval(chatPollingInterval);
+            chatPollingInterval = setInterval(pollMessages, 10000); // 10 seconds polling
+        }
+        
+        function toggleChat() {
+            if ($('#chatWidget').is(':visible')) {
+                $('#chatWidget').hide();
+                $('#chatBadge').css('display', 'flex');
+                if (chatPollingInterval) {
+                    clearInterval(chatPollingInterval);
+                    chatPollingInterval = null;
+                }
+            } else {
+                $('#chatWidget').css('display', 'flex');
+                $('#chatBadge').hide();
+                $('#unreadCount').hide().text('0');
+                if (activeChatPartnerId) {
+                    pollMessages();
+                    chatPollingInterval = setInterval(pollMessages, 10000);
+                }
+            }
+        }
+
+        function pollMessages() {
+            if (!activeChatPartnerId) return;
+            $.ajax({
+                url: '/Chat/GetMessages',
+                type: 'GET',
+                data: {
+                    userId: currentUserId,
+                    partnerId: activeChatPartnerId,
+                    maDon: activeChatMaDon,
+                    lastTimestamp: lastChatTimestamp
+                },
+                success: function(res) {
+                    if (res.success && res.messages && res.messages.length > 0) {
+                        res.messages.forEach(function(m) {
+                            appendMessage(m.message, m.senderId === currentUserId);
+                            lastChatTimestamp = Math.max(lastChatTimestamp, m.timestamp);
+                        });
+                        
+                        // Scroll to bottom
+                        var chatBody = document.getElementById('chatMessages');
+                        chatBody.scrollTop = chatBody.scrollHeight;
+                        
+                        // Show badge if chat is closed
+                        if (!$('#chatWidget').is(':visible')) {
+                            $('#chatBadge').css('display', 'flex');
+                            var uc = $('#unreadCount');
+                            var currentCount = parseInt(uc.text()) || 0;
+                            uc.text(currentCount + res.messages.length).show();
+                        }
+                    }
+                }
+            });
+        }
+
+        function appendMessage(text, isMe) {
+            var cssClass = isMe ? 'msg-me' : 'msg-partner';
+            $('#chatMessages').append('<div class="chat-message ' + cssClass + '">' + text + '</div>');
+        }
+
+        function sendChatMessage() {
+            var text = $('#chatInput').val().trim();
+            if (!text || !activeChatPartnerId) return;
+            
+            $('#chatInput').val('');
+            
+            $.ajax({
+                url: '/Chat/SendMessage',
+                type: 'POST',
+                data: {
+                    senderId: currentUserId,
+                    senderName: currentUserName,
+                    receiverId: activeChatPartnerId,
+                    message: text,
+                    maDon: activeChatMaDon
+                },
+                success: function(res) {
+                    if (res.success) {
+                        appendMessage(text, true);
+                        lastChatTimestamp = Math.max(lastChatTimestamp, res.msg.timestamp);
+                        var chatBody = document.getElementById('chatMessages');
+                        chatBody.scrollTop = chatBody.scrollHeight;
+                    }
+                }
+            });
+        }
+
+        function handleChatEnter(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+        
+        // Expose openChat to global scope so other scripts can use it
+        window.openChat = openChat;
+    </script>
+}

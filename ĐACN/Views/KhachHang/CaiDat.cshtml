@@ -1,0 +1,182 @@
+@{
+    ViewBag.Title = "Cài đặt tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    .settings-card {
+        border: none;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        background: #ffffff;
+        transition: transform 0.3s ease;
+    }
+    .settings-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+    }
+    .danger-zone {
+        border: 2px dashed #f5c2c7;
+        background: #fff5f5;
+    }
+    .form-floating > .form-control {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+    }
+    .form-floating > .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+    }
+    .btn-update {
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        border: none;
+        color: white;
+        border-radius: 0.75rem;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .btn-update:hover {
+        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3);
+        transform: translateY(-1px);
+        color: white;
+    }
+    .btn-danger-action {
+        background: #dc3545;
+        border: none;
+        border-radius: 0.75rem;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .btn-danger-action:hover {
+        background: #bb2d3b;
+        box-shadow: 0 8px 20px rgba(220, 53, 69, 0.3);
+        transform: translateY(-1px);
+    }
+    .password-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #6c757d;
+        z-index: 10;
+    }
+    .password-toggle:hover {
+        color: #0d6efd;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+
+            @if (TempData["Msg"] != null)
+            {
+                <div class="alert alert-warning alert-dismissible fade show shadow-sm border-0 mb-4 rounded-3" role="alert">
+                    <i class="fas fa-bell me-2 text-warning"></i> @TempData["Msg"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <h3 class="mb-4 fw-bold text-dark text-center"><i class="fas fa-cog text-secondary me-2"></i>Cài đặt tài khoản</h3>
+
+            <div class="card settings-card mb-5">
+                <div class="card-header bg-white pt-4 pb-2 border-bottom-0">
+                    <h5 class="card-title text-primary fw-bold mb-0"><i class="fas fa-shield-alt me-2"></i>Đổi mật khẩu</h5>
+                </div>
+                <div class="card-body p-4">
+                    @using (Html.BeginForm("DoiMatKhau", "KhachHang", FormMethod.Post))
+                    {
+                        <div class="position-relative mb-4">
+                            <div class="form-floating">
+                                <input type="password" class="form-control" id="matKhauCu" name="matKhauCu" placeholder="Mật khẩu hiện tại" required>
+                                <label for="matKhauCu">Mật khẩu hiện tại</label>
+                            </div>
+                            <i class="fas fa-eye password-toggle" onclick="togglePassword('matKhauCu', this)"></i>
+                        </div>
+
+                        <div class="position-relative mb-2">
+                            <div class="form-floating">
+                                <input type="password" class="form-control" id="matKhauMoi" name="matKhauMoi" placeholder="Mật khẩu mới" minlength="6" required>
+                                <label for="matKhauMoi">Mật khẩu mới</label>
+                            </div>
+                            <i class="fas fa-eye password-toggle" onclick="togglePassword('matKhauMoi', this)"></i>
+                        </div>
+                        <div class="form-text text-muted small ms-2 mb-4"><i class="fas fa-info-circle me-1"></i>Mật khẩu cần tối thiểu 6 ký tự.</div>
+
+                        <div class="position-relative mb-4">
+                            <div class="form-floating">
+                                <input type="password" class="form-control" id="xacNhanMatKhau" name="xacNhanMatKhau" placeholder="Xác nhận mật khẩu mới" required>
+                                <label for="xacNhanMatKhau">Xác nhận mật khẩu mới</label>
+                            </div>
+                            <i class="fas fa-eye password-toggle" onclick="togglePassword('xacNhanMatKhau', this)"></i>
+                        </div>
+
+                        <div class="d-grid mt-2">
+                            <button type="submit" class="btn btn-update">
+                                <i class="fas fa-key me-2"></i>Cập nhật mật khẩu
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card settings-card danger-zone">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-danger fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Vùng nguy hiểm</h5>
+                    <p class="card-text text-muted small mb-4">
+                        Việc xóa tài khoản sẽ vô hiệu hóa hoàn toàn quyền truy cập của bạn. Lịch sử đơn hàng sẽ được ẩn danh hoặc loại bỏ. 
+                        <strong>Hành động này không thể hoàn tác!</strong>
+                    </p>
+
+                    @using (Html.BeginForm("XoaTaiKhoan", "KhachHang", FormMethod.Post, new { id = "formXoaTaiKhoan" }))
+                    {
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-danger-action" onclick="confirmDelete()">
+                                <i class="fas fa-trash-alt me-2"></i>Xóa tài khoản vĩnh viễn
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePassword(inputId, iconElement) {
+        var input = document.getElementById(inputId);
+        if (input.type === "password") {
+            input.type = "text";
+            iconElement.classList.remove("fa-eye");
+            iconElement.classList.add("fa-eye-slash");
+        } else {
+            input.type = "password";
+            iconElement.classList.remove("fa-eye-slash");
+            iconElement.classList.add("fa-eye");
+        }
+    }
+
+    function confirmDelete() {
+        Swal.fire({
+            title: 'CẢNH BÁO TỐI CAO',
+            text: "Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể khôi phục!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Đồng ý xóa',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('formXoaTaiKhoan').submit();
+            }
+        });
+    }
+</script>

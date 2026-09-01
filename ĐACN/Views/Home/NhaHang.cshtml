@@ -1,0 +1,286 @@
+@using ĐACN.Models
+@model IEnumerable<NhaHangViewModel>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Danh sách Nhà hàng";
+
+    // Kiểm tra session user
+    var tk = Session["TaiKhoan"] as TaiKhoan;
+
+    // Lấy giá trị sort từ URL để highlight nút đang chọn
+    string currentSort = ViewBag.CurrentSort as string ?? "default";
+}
+
+<style>
+    /* --- CSS CHO FILTER BAR (Copy từ Partial) --- */
+    .filter-navbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        overflow-x: auto;
+        padding-bottom: 5px;
+        white-space: nowrap;
+        justify-content: center;
+    }
+
+    .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 50px;
+        border: 1px solid #e0e0e0;
+        background-color: #fff;
+        color: #555;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+        .filter-chip:hover {
+            background-color: #f5f5f5;
+            color: #333;
+            text-decoration: none;
+            border-color: #d0d0d0;
+        }
+
+        .filter-chip.active {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
+        }
+
+    /* --- CSS CARD --- */
+    .restaurant-card {
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow: hidden;
+        text-align: left;
+        cursor: pointer;
+        height: 100%;
+        border: 1px solid rgba(0,0,0,0.03);
+        position: relative;
+    }
+
+        .restaurant-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(255, 75, 43, 0.15);
+            border-color: rgba(255, 75, 43, 0.2);
+        }
+
+            .restaurant-card:hover .restaurant-img {
+                transform: scale(1.05);
+            }
+
+    .img-wrapper {
+        position: relative;
+        width: 100%;
+        padding-top: 60%;
+        overflow: hidden;
+    }
+
+    .restaurant-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background-color: #f8f8f8;
+        transition: transform 0.3s ease;
+    }
+
+    .closed-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+    }
+
+    .restaurant-body {
+        padding: 12px 15px;
+    }
+
+        .restaurant-body h5 {
+            font-weight: 700;
+            margin-bottom: 4px;
+            font-size: 1.05rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    .restaurant-address {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+    }
+
+    .rating {
+        color: #ffc107;
+        font-weight: 600;
+    }
+
+    .distance-badge {
+        color: #28a745;
+        font-weight: 600;
+        background-color: #e8f5e9;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    @@media (max-width: 768px) {
+        .filter-navbar {
+            justify-content: flex-start;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <h2 class="text-center mb-4 fw-bold">🏙️ Danh Sách Nhà Hàng</h2>
+
+    <div class="filter-navbar">
+        <a href="@Url.Action("NhaHang", "Home", new { sort = "default" })"
+           class="filter-chip @(currentSort == "default" ? "active" : "")">
+            <i class="fas fa-fire"></i> Phổ biến
+        </a>
+
+        <div onclick="filterNearMe()"
+             class="filter-chip @(currentSort == "near" ? "active" : "")">
+            <i class="fas fa-map-marker-alt"></i> Gần tôi (< 8km)
+        </div>
+
+        <a href="@Url.Action("NhaHang", "Home", new { sort = "rating" })"
+           class="filter-chip @(currentSort == "rating" ? "active" : "")">
+            <i class="fas fa-star"></i> Đánh giá cao
+        </a>
+
+        <a href="@Url.Action("NhaHang", "Home", new { sort = "bestseller" })"
+           class="filter-chip @(currentSort == "bestseller" ? "active" : "")">
+            <i class="fas fa-shopping-cart"></i> Bán chạy
+        </a>
+    </div>
+
+    <div id="location-loading" class="text-center text-muted mb-3" style="display:none;">
+        <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+        <small class="ms-2">Đang tìm vị trí của bạn...</small>
+    </div>
+
+    <div class="row">
+        @if (Model == null || !Model.Any())
+        {
+            <div class="col-12">
+                <div class="alert alert-light text-center mt-3 border" role="alert">
+                    <div class="mb-2" style="font-size: 2rem;">🍽️</div>
+                    <p class="text-muted mb-0">Không tìm thấy nhà hàng nào phù hợp.</p>
+                    @if (currentSort == "near")
+                    {
+                        <small class="text-danger">Hãy đảm bảo bạn đã bật định vị trình duyệt.</small>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            foreach (var nh in Model)
+            {
+                <div class="col-6 col-sm-6 col-md-4 col-lg-3 mb-4">
+                    <div class="restaurant-card">
+                        <a href="@Url.Action("XemMenu", "KhachHang", new { id = nh.MaNH })"
+                           class="text-decoration-none text-dark require-login"
+                           data-id="@nh.MaNH">
+
+                            <div class="img-wrapper">
+                                <img src="~/images/nhahang/@nh.HinhAnh"
+                                     alt="@nh.TenNH"
+                                     class="restaurant-img"
+                                     onerror="this.onerror=null; this.src='/images/nhahang/comtam_saigon.jpg'" />
+
+                                @if (nh.TrangThai == "Đang đóng cửa")
+                                {
+                                    <div class="closed-overlay">
+                                        <span class="badge bg-danger shadow">Đóng cửa</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="restaurant-body">
+                                <h5 title="@nh.TenNH">@nh.TenNH</h5>
+                                <p class="restaurant-address" title="@nh.DiaChi">
+                                    <i class="fas fa-map-marker-alt text-secondary small"></i> @nh.DiaChi
+                                </p>
+
+                                <div class="info-row">
+                                    <div>
+                                        <span class="rating"><i class="fas fa-star"></i> @nh.Rating.ToString("0.0")</span>
+                                        <span class="text-muted small">(@nh.TongLuotMua)</span>
+                                    </div>
+
+                                    @if (nh.KhoangCachKm > 0 && nh.KhoangCachKm < 999)
+                                    {
+                                        <span class="distance-badge">
+                                            <i class="fas fa-location-arrow"></i> @nh.KhoangCachKm km
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+
+    // Hàm định vị GPS cho Filter Gần tôi
+    function filterNearMe() {
+        document.getElementById("location-loading").style.display = "block";
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    // Chuyển hướng về Action NhaHang
+                    window.location.href = `/Home/NhaHang?sort=near&lat=${lat}&lng=${lng}`;
+                },
+                function (error) {
+                    document.getElementById("location-loading").style.display = "none";
+                    let msg = "Không thể lấy vị trí.";
+                    if (error.code == 1) msg = "Vui lòng cho phép trình duyệt truy cập vị trí.";
+                    alert(msg);
+                }
+            );
+        } else {
+            alert("Trình duyệt không hỗ trợ định vị.");
+            document.getElementById("location-loading").style.display = "none";
+        }
+    }
+</script>

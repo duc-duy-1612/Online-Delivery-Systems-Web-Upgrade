@@ -1,0 +1,112 @@
+@model IEnumerable<ĐACN.Shipper>
+
+@{
+    ViewBag.Title = "Danh sách người giao hàng";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="color: #111827;">Danh sách Shipper</h2>
+        <p class="text-muted mb-0">Quản lý và tra cứu thông tin đối tác giao hàng trên hệ thống.</p>
+    </div>
+    <a href="@Url.Action("ThemShipper", "Admin")" class="btn btn-dark btn-modern">
+        Thêm Shipper mới
+    </a>
+</div>
+
+<div class="admin-card border-0 mb-4 p-3">
+    <form method="get" class="row g-3 align-items-center">
+        <div class="col-md-9">
+            <input type="text" name="keyword" value="@ViewBag.Keyword" placeholder="Nhập tên, số điện thoại hoặc biển số xe..." class="form-control bg-light border-0 shadow-none" style="padding: 10px 16px; border-radius: 8px;" />
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-outline-dark btn-modern w-100" style="padding: 10px 16px;">Tìm kiếm</button>
+        </div>
+    </form>
+</div>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm mb-4" style="border-radius: 8px; background-color: #d1fae5; color: #065f46;">
+        @TempData["Message"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger border-0 shadow-sm mb-4" style="border-radius: 8px; background-color: #fee2e2; color: #991b1b;">
+        @TempData["Error"]
+    </div>
+}
+
+<div class="admin-card border-0 p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead style="background-color: #f9fafb;">
+                <tr>
+                    <th class="text-muted fw-bold border-bottom-0 py-3 ps-4" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">STT</th>
+                    <th class="text-muted fw-bold border-bottom-0 py-3" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Shipper</th>
+                    <th class="text-muted fw-bold border-bottom-0 py-3" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Liên hệ & Phương tiện</th>
+                    <th class="text-muted fw-bold border-bottom-0 py-3" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Tài khoản</th>
+                    <th class="text-muted fw-bold border-bottom-0 py-3 text-center" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Trạng thái</th>
+                    <th class="text-muted fw-bold border-bottom-0 py-3 pe-4 text-end" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    int stt = 1;
+                    var danhSach = Model?.OrderByDescending(s => s.MaShipper).ToList() ?? new List<ĐACN.Shipper>();
+                }
+
+                @if (danhSach.Any())
+                {
+                    foreach (var shipper in danhSach)
+                    {
+                        <tr class="border-bottom" style="transition: all 0.2s ease;">
+                            <td class="py-3 ps-4 text-muted">@stt</td>
+                            <td class="py-3">
+                                <div class="fw-bold" style="color: #111827;">@shipper.TenShipper</div>
+                            </td>
+                            <td class="py-3">
+                                <div class="text-dark fw-medium">@shipper.SDT</div>
+                                <div class="text-muted small">BSX: @shipper.BienSoXe</div>
+                            </td>
+                            <td class="py-3">
+                                <div class="text-dark">@(shipper.TaiKhoan?.TenDangNhap ?? "Chưa có")</div>
+                            </td>
+                            <td class="py-3 text-center">
+                                @if (shipper.TaiKhoan != null)
+                                {
+                                    if (shipper.TaiKhoan.TrangThai == true)
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success fw-normal px-3 py-2" style="border-radius: 50px;">Hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger bg-opacity-10 text-danger fw-normal px-3 py-2" style="border-radius: 50px;">Bị khóa</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-3 py-2" style="border-radius: 50px;">Chưa có tài khoản</span>
+                                }
+                            </td>
+                            <td class="py-3 pe-4 text-end">
+                                <a href="@Url.Action("ChiTietShipper", "Admin", new { id = shipper.MaShipper })" class="btn btn-sm btn-light fw-medium px-3" style="border-radius: 6px;">
+                                    Chi tiết
+                                </a>
+                            </td>
+                        </tr>
+                        stt++;
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-muted text-center py-5">Không tìm thấy thông tin phù hợp.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,175 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - ZFood</title>
+    <link href="~/Content/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .split-screen {
+            display: flex;
+            height: 100vh;
+        }
+        .left-side {
+            flex: 1;
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop') center/cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .right-side {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            padding: 40px;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 75, 43, 0.4);
+            color: white;
+        }
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+        }
+        .form-control:focus {
+            border-color: #ff4b2b;
+            box-shadow: 0 0 0 0.2rem rgba(255, 75, 43, 0.25);
+        }
+        .back-home {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            text-decoration: none;
+            color: #555;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .back-home:hover {
+            color: #ff4b2b;
+        }
+        @@media (max-width: 768px) {
+            .left-side { display: none; }
+            .split-screen { display: block; }
+            .right-side { min-height: 100vh; }
+        }
+    </style>
+</head>
+<body>
+    <a href="@Url.Action("TrangChu", "Home")" class="back-home"><i class="fa-solid fa-house"></i> Về trang chủ</a>
+    <div class="split-screen">
+        <div class="left-side">
+            <h1 class="fw-bold mb-3"><i class="fa-solid fa-burger me-2 text-danger"></i>ZFood</h1>
+            <p class="fs-4">Hương vị tuyệt hảo, giao hàng siêu tốc.</p>
+        </div>
+        <div class="right-side">
+            <div class="login-card">
+                <h2 class="fw-bold mb-4">Chào mừng trở lại! 👋</h2>
+                <p class="text-muted mb-4">Vui lòng đăng nhập để tiếp tục.</p>
+
+                <form id="formLogin" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label for="username" class="form-label fw-semibold">Tên đăng nhập</label>
+                        <input type="text" name="username" id="username" class="form-control" placeholder="Nhập tên đăng nhập" required />
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label fw-semibold">Mật khẩu</label>
+                        <input type="password" name="password" id="password" class="form-control" placeholder="Nhập mật khẩu" required />
+                    </div>
+
+                    <div id="loginError" class="alert alert-danger text-center" style="display:none; border-radius:10px;"></div>
+
+                    <button type="submit" class="btn btn-gradient w-100 mb-3">Đăng nhập</button>
+
+                    <button type="button" class="btn btn-outline-dark w-100 mb-4" style="border-radius: 50px; padding: 10px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" class="me-2" /> Đăng nhập với Google
+                    </button>
+
+                    <div class="text-center">
+                        <a href="#" class="text-decoration-none text-muted mb-2 d-block">Quên mật khẩu?</a>
+                        <span class="text-muted">Chưa có tài khoản?</span> <a href="/Account/Register" class="text-decoration-none fw-bold text-danger">Đăng ký ngay</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#formLogin").submit(function (e) {
+                e.preventDefault();
+
+                var username = $("#username").val();
+                var password = $("#password").val();
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '/Account/Login',
+                    type: 'POST',
+                    data: {
+                        username: username,
+                        password: password,
+                        __RequestVerificationToken: token
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            if (res.role === "Shipper") {
+                                window.location.href = '/Shipper/Index';
+                            } else if (res.role === "Admin") {
+                                window.location.href = '/Admin/DanhSachCuaHang';
+                            } else if (res.role === "NhaHang") {
+                                window.location.href = '/NhaHang/ThongKe';
+                            } else {
+                                window.location.href = '/Home/TrangChu';
+                            }
+                        } else {
+                            $("#loginError").text(res.message).show();
+                        }
+                    },
+                    error: function () {
+                        $("#loginError").text("Có lỗi xảy ra. Vui lòng thử lại.").show();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

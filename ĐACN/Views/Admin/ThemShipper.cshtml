@@ -1,0 +1,113 @@
+@model ĐACN.Shipper
+@{
+    ViewBag.Title = "Thêm người giao hàng mới";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="color: #111827;">Thêm Shipper mới</h2>
+        <p class="text-muted mb-0">Tạo tài khoản và hồ sơ cho đối tác giao hàng mới.</p>
+    </div>
+    <a href="@Url.Action("DanhSachShipper", "Admin")" class="btn btn-light fw-medium px-4" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+        Quay lại
+    </a>
+</div>
+
+@using (Html.BeginForm("ThemShipper", "Admin", FormMethod.Post, new { enctype = "multipart/form-data", @class = "row w-100 m-0" }))
+{
+    <!-- Cột trái: Ảnh đại diện -->
+    <div class="col-lg-4 mb-4">
+        <div class="admin-card border-0 h-100 text-center">
+            <h5 class="fw-bold mb-4" style="color: #111827;">Ảnh thẻ đối tác</h5>
+            
+            <div class="position-relative d-inline-block mb-3">
+                <img id="previewAvatar"
+                     src="~/Content/images/default-avatar.png"
+                     alt="avatar"
+                     style="width: 180px; height: 180px; object-fit: cover; border-radius: 50%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 4px solid #fff;" />
+                
+                <label for="HinhShipperFile" class="position-absolute d-flex justify-content-center align-items-center bg-dark text-white shadow"
+                       style="cursor:pointer; width: 40px; height: 40px; border-radius: 50%; right: 10px; bottom: 10px;">
+                    <span style="font-size: 1.2rem; line-height: 1;">+</span>
+                </label>
+                <input type="file" id="HinhShipperFile" name="HinhShipperFile" accept="image/*" class="d-none" onchange="previewImage(event)" />
+            </div>
+            
+            <p class="text-muted small px-3">Nên sử dụng ảnh chân dung rõ mặt. Hỗ trợ định dạng JPG, PNG, WEBP.</p>
+        </div>
+    </div>
+
+    <!-- Cột phải: Thông tin -->
+    <div class="col-lg-8 mb-4">
+        <div class="admin-card border-0 h-100">
+            <h5 class="fw-bold border-bottom pb-3 mb-4" style="color: #111827;">Thông tin cá nhân</h5>
+
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Tên Shipper</label>
+                    @Html.TextBoxFor(m => m.TenShipper, new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3", required = "required", placeholder = "Nhập tên đầy đủ" })
+                </div>
+                <div class="col-md-6">
+                    <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Số điện thoại</label>
+                    @Html.TextBoxFor(m => m.SDT, new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3", required = "required", placeholder = "VD: 0901234567" })
+                </div>
+                <div class="col-md-12">
+                    <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Biển số xe</label>
+                    @Html.TextBoxFor(m => m.BienSoXe, new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3", placeholder = "VD: 59X1-12345" })
+                </div>
+            </div>
+
+            <h5 class="fw-bold border-bottom pb-3 mb-4" style="color: #111827; margin-top: 2rem;">Thiết lập tài khoản</h5>
+
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Tên đăng nhập</label>
+                    <input type="text" name="TenDangNhap" class="form-control bg-light border-0 shadow-none p-3 rounded-3" required placeholder="Tên đăng nhập hệ thống" />
+                </div>
+                <div class="col-md-6">
+                    <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Mật khẩu</label>
+                    <input type="password" name="MatKhau" class="form-control bg-light border-0 shadow-none p-3 rounded-3" required placeholder="Nhập mật khẩu" />
+                </div>
+                <div class="col-md-6 d-none">
+                    <select name="VaiTro" class="form-select">
+                        <option value="Shipper" selected>Shipper</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Trạng thái tài khoản</label>
+                    <select name="TrangThai" class="form-select bg-light border-0 shadow-none p-3 rounded-3">
+                        <option value="true" selected>Hoạt động</option>
+                        <option value="false">Bị khóa</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-3 pt-3 border-top">
+                <a href="@Url.Action("DanhSachShipper", "Admin")" class="btn btn-light fw-medium px-4" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+                    Hủy thao tác
+                </a>
+                <button type="submit" class="btn btn-success btn-modern px-5">
+                    Thêm Shipper
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm mt-3 text-center fw-bold" style="border-radius: 8px; background-color: #d1fae5; color: #065f46;">
+        @TempData["Message"]
+    </div>
+}
+
+<script>
+    function previewImage(event) {
+        const output = document.getElementById('previewAvatar');
+        output.src = URL.createObjectURL(event.target.files[0]);
+        output.onload = function () {
+            URL.revokeObjectURL(output.src); // giải phóng bộ nhớ
+        }
+    }
+</script>

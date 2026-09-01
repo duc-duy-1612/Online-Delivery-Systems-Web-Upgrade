@@ -1,0 +1,66 @@
+@model ĐACN.KhachHang
+
+@{
+    ViewBag.Title = "Thêm khách hàng mới";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="color: #111827;">Thêm khách hàng mới</h2>
+        <p class="text-muted mb-0">Tạo tài khoản trực tiếp cho người dùng trên hệ thống.</p>
+    </div>
+    <a href="@Url.Action("DanhSachNguoiDung", "Admin")" class="btn btn-light fw-medium px-4" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+        Quay lại
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="admin-card border-0 p-4 mb-4">
+            @using (Html.BeginForm("ThemNguoiDung", "Admin", FormMethod.Post, new { @class = "needs-validation", novalidate = "novalidate" }))
+            {
+                @Html.HiddenFor(m => m.MaKH)
+
+                <h5 class="fw-bold border-bottom pb-3 mb-4" style="color: #111827;">Thông tin cá nhân</h5>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Họ và tên</label>
+                        @Html.TextBoxFor(m => m.TenKH, new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3", placeholder = "Nhập họ tên đầy đủ", required = "required" })
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Số điện thoại</label>
+                        @Html.TextBoxFor(m => m.SDT, new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3", placeholder = "VD: 0901234567", required = "required" })
+                    </div>
+                    <div class="col-md-12">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Địa chỉ</label>
+                        @Html.TextBoxFor(m => m.DiaChi, new { @class = "form-control bg-light border-0 shadow-none p-3 rounded-3", placeholder = "Số nhà, đường, phường/xã...", required = "required" })
+                    </div>
+                </div>
+
+                <h5 class="fw-bold border-bottom pb-3 mb-4" style="color: #111827; margin-top: 2rem;">Thiết lập tài khoản</h5>
+
+                <div class="row g-4 mb-5">
+                    <div class="col-md-6">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Tên đăng nhập</label>
+                        <input type="text" name="TenDangNhap" class="form-control bg-light border-0 shadow-none p-3 rounded-3" placeholder="Nhập ID đăng nhập..." required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Mật khẩu</label>
+                        <input type="password" name="MatKhau" class="form-control bg-light border-0 shadow-none p-3 rounded-3" placeholder="Nhập mật khẩu an toàn..." required />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-3 pt-3 border-top">
+                    <a href="@Url.Action("DanhSachNguoiDung", "Admin")" class="btn btn-light fw-medium px-4" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+                        Hủy thao tác
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-modern px-5">
+                        Thêm khách hàng
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</div>

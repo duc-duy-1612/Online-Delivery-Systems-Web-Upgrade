@@ -1,0 +1,205 @@
+@{
+    ViewBag.Title = "Tổng thu nhập";
+    ViewBag.Active = "Income";
+    Layout = "~/Views/Shared/_LayoutShipper.cshtml";
+
+    var thuNhapTuan = ViewBag.ThuNhapTuan != null ? (decimal)ViewBag.ThuNhapTuan : 0;
+    var soDonTuan = ViewBag.SoDonTuan != null ? (int)ViewBag.SoDonTuan : 0;
+    var thuNhapThang = ViewBag.ThuNhapThang != null ? (decimal)ViewBag.ThuNhapThang : 0;
+    var soDonThang = ViewBag.SoDonThang != null ? (int)ViewBag.SoDonThang : 0;
+    var thuNhapNam = ViewBag.ThuNhapNam != null ? (decimal)ViewBag.ThuNhapNam : 0;
+    var soDonNam = ViewBag.SoDonNam != null ? (int)ViewBag.SoDonNam : 0;
+    var tongThuNhap = ViewBag.TongThuNhap != null ? (decimal)ViewBag.TongThuNhap : 0;
+    var tongSoDon = ViewBag.TongSoDon != null ? (int)ViewBag.TongSoDon : 0;
+
+    var startOfWeek = ViewBag.StartOfWeek != null ? (DateTime)ViewBag.StartOfWeek : DateTime.Now;
+    var endOfWeek = ViewBag.EndOfWeek != null ? (DateTime)ViewBag.EndOfWeek : DateTime.Now;
+
+    var trungBinhThang = DateTime.Now.Month > 0 ? thuNhapNam / DateTime.Now.Month : 0;
+
+    var maxValue = Math.Max(Math.Max(thuNhapTuan, thuNhapThang), thuNhapNam);
+    var percentTuan = maxValue > 0 ? (thuNhapTuan / maxValue * 100) : 0;
+    var percentThang = maxValue > 0 ? (thuNhapThang / maxValue * 100) : 0;
+    var percentNam = maxValue > 0 ? (thuNhapNam / maxValue * 100) : 0;
+}
+
+<style>
+    .income-card {
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.05);
+        background-color: #fff;
+    }
+
+    .stat-number {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 15px 0;
+        color: #121418;
+        line-height: 1.2;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .period-badge {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #6c757d;
+    }
+
+    .progress-container {
+        border-radius: 12px;
+        padding: 20px 0;
+    }
+
+    .progress-custom {
+        height: 8px;
+        border-radius: 10px;
+        overflow: hidden;
+        background-color: #e9ecef;
+    }
+
+    .progress-bar-custom {
+        background-color: #121418;
+    }
+
+    .total-card {
+        background-color: #121418;
+        border-radius: 16px;
+        padding: 45px 35px;
+        color: white;
+    }
+</style>
+
+<div class="container-fluid px-4 mt-2 mb-5">
+    
+    <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-3">
+        <div>
+            <span class="text-uppercase text-muted fw-bold" style="letter-spacing: 1px; font-size: 0.85rem;">BÁO CÁO</span>
+            <h2 class="mb-0 fw-bold mt-1">Tổng thu nhập</h2>
+        </div>
+        <small class="text-muted fw-bold text-uppercase" style="letter-spacing: 1px;">
+            CẬP NHẬT: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+        </small>
+    </div>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success" style="border-radius: 12px;">
+            @TempData["Message"]
+        </div>
+    }
+
+    <div class="total-card mb-5">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="text-white-50 fw-bold text-uppercase mb-2" style="letter-spacing: 2px; font-size: 0.85rem;">TỔNG THU NHẬP LŨY KẾ</div>
+                <h1 class="fw-bold mb-3" style="font-size: 3.5rem;">@String.Format("{0:N0}", tongThuNhap) đ</h1>
+                <div class="text-white-50">@tongSoDon đơn hàng hoàn thành</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-lg-3 col-md-6">
+            <div class="income-card h-100 p-4 shadow-sm">
+                <div class="stat-label">TUẦN NÀY</div>
+                <div class="stat-number">@String.Format("{0:N0}", thuNhapTuan) đ</div>
+                <div class="period-badge mb-3">
+                    @startOfWeek.ToString("dd/MM") - @endOfWeek.ToString("dd/MM/yyyy")
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                    <small class="text-muted fw-bold">@soDonTuan ĐƠN HÀNG</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="income-card h-100 p-4 shadow-sm">
+                <div class="stat-label">THÁNG NÀY</div>
+                <div class="stat-number">@String.Format("{0:N0}", thuNhapThang) đ</div>
+                <div class="period-badge mb-3">
+                    Tháng @DateTime.Now.Month/@DateTime.Now.Year
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                    <small class="text-muted fw-bold">@soDonThang ĐƠN HÀNG</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="income-card h-100 p-4 shadow-sm">
+                <div class="stat-label">NĂM NÀY</div>
+                <div class="stat-number">@String.Format("{0:N0}", thuNhapNam) đ</div>
+                <div class="period-badge mb-3">
+                    Năm @DateTime.Now.Year
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                    <small class="text-muted fw-bold">@soDonNam ĐƠN HÀNG</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="income-card h-100 p-4 shadow-sm">
+                <div class="stat-label">TRUNG BÌNH THÁNG</div>
+                <div class="stat-number">@String.Format("{0:N0}", trungBinhThang) đ</div>
+                <div class="period-badge mb-3">
+                    @DateTime.Now.Month tháng đầu năm
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                    <small class="text-muted fw-bold">ƯỚC TÍNH</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="income-card p-4 shadow-sm mb-5">
+        <div class="border-bottom pb-3 mb-4">
+            <h5 class="mb-1 fw-bold text-dark">So sánh thu nhập</h5>
+            <small class="text-muted">Đóng góp của tuần, tháng so với tổng năm</small>
+        </div>
+        <div class="row g-5">
+            <div class="col-md-4">
+                <div class="progress-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.8rem;">TUẦN NÀY</span>
+                        <span class="fw-bold text-dark">@String.Format("{0:N0}", thuNhapTuan) đ</span>
+                    </div>
+                    <div class="progress progress-custom">
+                        <div class="progress-bar progress-bar-custom" role="progressbar" style="width: @(Math.Max(percentTuan, 2))%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="progress-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.8rem;">THÁNG NÀY</span>
+                        <span class="fw-bold text-dark">@String.Format("{0:N0}", thuNhapThang) đ</span>
+                    </div>
+                    <div class="progress progress-custom">
+                        <div class="progress-bar progress-bar-custom" role="progressbar" style="width: @(Math.Max(percentThang, 2))%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="progress-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.8rem;">NĂM NÀY</span>
+                        <span class="fw-bold text-dark">@String.Format("{0:N0}", thuNhapNam) đ</span>
+                    </div>
+                    <div class="progress progress-custom">
+                        <div class="progress-bar progress-bar-custom" role="progressbar" style="width: @(Math.Max(percentNam, 2))%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

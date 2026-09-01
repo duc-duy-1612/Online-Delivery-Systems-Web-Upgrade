@@ -1,0 +1,101 @@
+%% Online Food Delivery System — TO-BE Cross-Role Process Flow
+%% Status: APPROVED
+%% Version: 1.0
+%% Visual source: TO_BE_Cross_Role_Process.md — APPROVED v1.0
+%% Governance source: 00_README_BA_Evidence_Pack.md — APPROVED v1.0
+%% Evidence classification: BASELINE with explicitly marked unresolved items
+%% Mermaid cross-role process flow; not BPMN 2.0.
+%% Do not infer undocumented order states or transitions.
+
+flowchart TB
+    classDef sysAction fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b
+    classDef actorAction fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#212121
+    classDef exceptionNode fill:#ffebee,stroke:#c62828,stroke-width:2px,stroke-dasharray: 5 5,color:#b71c1c
+    classDef noteNode fill:#fff8e1,stroke:#ff8f00,stroke-width:1px,stroke-dasharray: 5 5,color:#ff6f00
+
+    subgraph CUST ["Customer"]
+        direction LR
+        C1("Browse restaurants & menu<br/>Build cart"):::actorAction
+        C2("Proceed to checkout"):::actorAction
+        C3("Select COD / QR Payment Simulation<br/>Confirm order"):::actorAction
+        C4("Track active order &<br/>delivery routing"):::actorAction
+        C5("Submit post-completion review"):::actorAction
+    end
+
+    subgraph SYS ["Online Food Delivery System"]
+        direction LR
+        SYS1("Validate address / route / distance<br/>Calculate delivery fees"):::sysAction
+        SYS2("Create order<br/>Chờ xác nhận"):::sysAction
+        SYS3("Make order available<br/>to Restaurant"):::sysAction
+        SYS4("Update to<br/>Đang lấy món"):::sysAction
+        SYS5("Expose eligible, unassigned<br/>order to Shippers"):::sysAction
+        SYS6("Record Shipper assignment"):::sysAction
+        SYS7("Update / maintain<br/>delivery lifecycle"):::sysAction
+        SYS8("Update to<br/>Hoàn thành"):::sysAction
+        
+        SYS_EX("System clears assignment"):::exceptionNode
+        POOL("Return order to<br/>delivery pool"):::exceptionNode
+        NOTE_EX>"Post-cancellation status transition:<br/>NOT EVIDENCED / REQUIRES CLARIFICATION"]:::noteNode
+    end
+
+    subgraph REST ["Restaurant"]
+        direction LR
+        R1("View incoming order"):::actorAction
+        R2("Prepare order"):::actorAction
+        R3("Select 'Làm xong'"):::actorAction
+    end
+
+    subgraph SHIP ["Shipper"]
+        direction LR
+        S1("View eligible available orders"):::actorAction
+        S2("Accept delivery"):::actorAction
+        S3("Collect order"):::actorAction
+        S4("Mark delivery as<br/>Đang giao"):::actorAction
+        S5("Complete delivery"):::actorAction
+        S_CANCEL("Cancel assigned delivery"):::exceptionNode
+        NOTE_CANCEL>"Cancellation while assigned is BASELINE.<br/>Exact timing / state semantics:<br/>NOT EVIDENCED / REQUIRES CLARIFICATION"]:::noteNode
+    end
+
+    %% Flow logic
+    C1 --> C2
+    C2 --> SYS1
+    SYS1 --> C3
+    C3 --> SYS2
+    
+    %% Exact Restaurant-confirmation semantics between "Chờ xác nhận"
+    %% and "Đang lấy món" are not evidenced in the approved baseline.
+    SYS2 --> SYS3
+    SYS3 --> R1
+    
+    R1 --> R2
+    R2 --> R3
+    R3 --> SYS4
+    
+    SYS4 --> SYS5
+    
+    SYS5 --> S1
+    S1 --> S2
+    
+    %% Eligibility Annotation
+    NOTE_ELIG>"Eligibility:<br/>- Unassigned<br/>- Ready for Pickup<br/>- No conflicting active delivery"]:::noteNode
+    NOTE_ELIG -.- S2
+    
+    %% Happy Path continues
+    S2 --> SYS6
+    SYS6 --> S3
+    S3 --> S4
+    
+    S4 --> SYS7
+    SYS7 --> S5
+    
+    SYS7 -. "Tracking" .-> C4
+    
+    S5 --> SYS8
+    SYS8 --> C5
+
+    %% Exception Branch — Not part of mandatory flow
+    SYS6 -. "Assigned-delivery exception" .-> S_CANCEL
+    NOTE_CANCEL -.- S_CANCEL
+    S_CANCEL -.-> SYS_EX
+    SYS_EX -.-> POOL
+    POOL -.-> NOTE_EX

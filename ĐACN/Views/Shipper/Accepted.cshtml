@@ -1,0 +1,499 @@
+@using System
+@model IEnumerable<ĐACN.Models.AcceptedOrderView>
+
+@{
+    ViewBag.Title = "Shipper - Đơn đã nhận";
+    Layout = "~/Views/Shared/_LayoutShipper.cshtml";
+}
+
+@functions {
+    public static string GetTimeAgo(DateTime? dateTime)
+    {
+        if (!dateTime.HasValue) return "";
+
+        var timeSpan = DateTime.Now - dateTime.Value;
+
+        if (timeSpan.TotalMinutes < 1)
+            return "Vừa xong";
+        else if (timeSpan.TotalMinutes < 60)
+            return string.Format("{0} phút trước", (int)timeSpan.TotalMinutes);
+        else if (timeSpan.TotalHours < 24)
+            return string.Format("{0} giờ trước", (int)timeSpan.TotalHours);
+        else
+            return string.Format("{0} ngày trước", (int)timeSpan.TotalDays);
+    }
+
+    public static string GetStatusBadgeClass(string trangThai)
+    {
+        if (string.IsNullOrWhiteSpace(trangThai))
+            return "bg-secondary";
+
+        string statusLower = trangThai.ToLower();
+        if (statusLower.Contains("chờ") && statusLower.Contains("xác nhận"))
+            return "bg-warning";
+        else if (statusLower.Contains("đã xác nhận"))
+            return "bg-info";
+        else if (statusLower.Contains("đang chuẩn bị"))
+            return "bg-primary";
+        else if (statusLower.Contains("đang giao") || statusLower.Contains("đang lấy"))
+            return "bg-success";
+        else if (statusLower.Contains("hoàn thành"))
+            return "bg-success";
+        else if (statusLower.Contains("đã hủy") || statusLower.Contains("hủy"))
+            return "bg-danger";
+        else
+            return "bg-secondary";
+    }
+}
+
+<style>
+    .order-card {
+        background: #fff;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        margin-bottom: 20px;
+        padding: 20px;
+        display: block;
+    }
+    .order-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .badge-gradient {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 50px;
+    }
+    .badge-price {
+        background: linear-gradient(135deg, #f2994a, #f2c94c);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 50px;
+    }
+    .btn-action {
+        border-radius: 50px;
+        font-weight: 500;
+        padding: 8px 16px;
+        transition: all 0.3s;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark">🚚 Đơn đã nhận</h2>
+
+        <div id="gps-status-indicator" class="badge bg-secondary p-2 shadow-sm rounded-pill px-3">
+            <i class="fas fa-satellite-dish me-1"></i> <span id="gps-text">Đang chờ GPS...</span>
+        </div>
+    </div>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success" style="border-radius: 10px;" role="alert">
+            @TempData["Message"]
+        </div>
+    }
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            @if (Model == null || !Model.Any())
+            {
+                <div class="text-center text-muted py-5">
+                    <img src="https://cdn-icons-png.flaticon.com/512/102/102660.png" width="80" class="opacity-50 mb-3" />
+                    <p>Hiện không có đơn nào đang giao</p>
+                </div>
+            }
+            else
+            {
+                <div class="list-group" style="background: transparent;">
+                    @foreach (var o in Model)
+                    {
+                        <div class="order-card">
+                            <div class="d-flex flex-column w-100">
+                                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                                    <div class="d-flex flex-column flex-grow-1">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                                            <h5 class="m-0 fw-bold text-primary">#@o.MaDon</h5>
+                                            <span class="badge badge-gradient">+@String.Format("{0:N0}", o.ShipFee) đ ship</span>
+                                            @if (o.TongTien.HasValue)
+                                            {
+                                                <span class="badge badge-price">Đơn: @String.Format("{0:N0}", o.TongTien ?? 0) đ</span>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(o.TrangThai))
+                                            {
+                                                <span class="badge @GetStatusBadgeClass(o.TrangThai)">@o.TrangThai</span>
+                                            }
+                                            @if (o.ThoiGianDat.HasValue)
+                                            {
+                                                <small class="text-muted">
+                                                    ⏰ @GetTimeAgo(o.ThoiGianDat)
+                                                </small>
+                                            }
+                                            @if (o.SoLuongMon > 0)
+                                            {
+                                                <small class="text-muted">
+                                                    📦 @o.SoLuongMon món
+                                                </small>
+                                            }
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <div class="d-flex align-items-start gap-2">
+                                                <small class="text-muted fw-bold">🏪 Nhà hàng:</small>
+                                                <div class="d-flex flex-column">
+                                                    <small class="text-muted">@o.TenNhaHang</small>
+                                                    <small class="text-muted">📍 @o.DiaChiNhaHang</small>
+                                                    @if (!string.IsNullOrWhiteSpace(o.SDTNhaHang))
+                                                    {
+                                                        <small class="text-muted">
+                                                            📞 <a href="tel:@o.SDTNhaHang" class="text-decoration-none">@o.SDTNhaHang</a>
+                                                        </small>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <div class="d-flex align-items-start gap-2">
+                                                <small class="text-muted fw-bold">👤 Khách hàng:</small>
+                                                <div class="d-flex flex-column">
+                                                    <small class="text-muted">@o.TenKhachHang</small>
+                                                    @* Lấy trực tiếp DiaChiKhachHang (đã map từ DiaChiGiaoHang) *@
+                                                    <small class="text-muted">📍 @o.DiaChiKhachHang</small>
+
+                                                    @* Lấy trực tiếp SDTKhachHang (đã map từ SDTGiaoHang) *@
+                                                    @if (!string.IsNullOrWhiteSpace(o.SDTKhachHang))
+                                                    {
+                                                        <small class="text-muted">
+                                                            📞 <a href="tel:@o.SDTKhachHang" class="text-decoration-none">@o.SDTKhachHang</a>
+                                                        </small>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(o.DanhSachMonTomTat))
+                                        {
+                                            <div class="mb-2">
+                                                <small class="text-muted">
+                                                    <strong>📦 Món ăn:</strong> @o.DanhSachMonTomTat
+                                                </small>
+                                            </div>
+                                        }
+
+                                        @if (o.ChiTietMonAn != null && o.ChiTietMonAn.Any())
+                                        {
+                                            <div class="mb-2">
+                                                <small class="text-muted fw-bold">📋 Chi tiết đơn hàng:</small>
+                                                <div class="mt-1">
+                                                    @foreach (var mon in o.ChiTietMonAn)
+                                                    {
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <small class="text-muted">
+                                                                • @mon.TenMon x @mon.SoLuong
+                                                            </small>
+                                                            <small class="text-muted">
+                                                                @String.Format("{0:N0}", mon.ThanhTien) đ
+                                                            </small>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+
+                                    </div>
+
+                                    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2 mt-3 w-100 justify-content-end">
+                                        <a class="btn btn-outline-primary btn-action" href="@Url.Action("Details", "Shipper", new { maDon = o.MaDon })">Xem chi tiết</a>
+
+                                        @if (!string.Equals(o.TrangThai, "Hoàn thành", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <div class="btn-group shadow-sm" style="border-radius: 50px; overflow: hidden;">
+                                                @using (Html.BeginForm("UpdateStatus", "Shipper", FormMethod.Post, new { @class = "m-0" }))
+                                                {
+                                                    <input type="hidden" name="maDon" value="@o.MaDon" />
+                                                    <input type="hidden" name="trangThai" value="Đang lấy món" />
+                                                    <button type="submit" class="btn btn-sm @(string.Equals(o.TrangThai, "Đang lấy món", StringComparison.OrdinalIgnoreCase) ? "btn-success" : "btn-light")" style="padding: 10px 15px; font-weight: 500;"
+                                                            @(string.Equals(o.TrangThai, "Đang lấy món", StringComparison.OrdinalIgnoreCase) ? "disabled" : "")>
+                                                        Đang lấy món
+                                                    </button>
+                                                }
+                                                @using (Html.BeginForm("UpdateStatus", "Shipper", FormMethod.Post, new { @class = "m-0" }))
+                                                {
+                                                    <input type="hidden" name="maDon" value="@o.MaDon" />
+                                                    <input type="hidden" name="trangThai" value="Đang giao" />
+                                                    <button type="submit" class="btn btn-sm @(string.Equals(o.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase) ? "btn-success" : "btn-light")" style="padding: 10px 15px; font-weight: 500;"
+                                                            @(string.Equals(o.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase) ? "disabled" : "")>
+                                                        Đang giao
+                                                    </button>
+                                                }
+                                                @using (Html.BeginForm("UpdateStatus", "Shipper", FormMethod.Post, new { @class = "m-0" }))
+                                                {
+                                                    <input type="hidden" name="maDon" value="@o.MaDon" />
+                                                    <input type="hidden" name="trangThai" value="Hoàn thành" />
+                                                    <button type="submit" class="btn btn-sm btn-light text-success" style="padding: 10px 15px; font-weight: bold;">
+                                                        Hoàn tất giao
+                                                    </button>
+                                                }
+                                            </div>
+
+                                            using (Html.BeginForm("Cancel", "Shipper", FormMethod.Post, new { @class = "m-0" }))
+                                            {
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="maDon" value="@o.MaDon" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Hủy nhận</button>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+
+                                @* MAP HIỂN THỊ (chỉ hiện khi đơn đang xử lý) - Nằm dưới các nút trạng thái *@
+                                @if (!string.Equals(o.TrangThai, "Hoàn thành", StringComparison.OrdinalIgnoreCase) &&
+                                    (string.Equals(o.TrangThai, "Đang lấy món", StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(o.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    <div class="mt-3 mb-2 w-100">
+                                        <div class="card shadow-sm border-0">
+                                            <div class="card-header bg-white border-bottom-0 pt-3">
+                                                <h6 class="card-title mb-0"><i class="fas fa-map-marker-alt text-primary"></i> Bản đồ đường đi</h6>
+                                            </div>
+                                            <div class="card-body p-2 position-relative">
+                                                <div id="map-@o.MaDon" class="map-container @(string.Equals(o.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase) ? "map-large" : "")" style="width: 100%; border-radius: 8px; z-index: 1;"></div>
+                                                <div class="map-info-overlay-@o.MaDon" style="position: absolute; bottom: 20px; left: 20px; right: 20px; background: rgba(255, 255, 255, 0.95); padding: 15px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; backdrop-filter: blur(5px);">
+                                                    <div class="d-flex justify-content-around text-center">
+                                                        <div>
+                                                            <small class="text-muted d-block">Khoảng cách</small>
+                                                            <strong id="distance-display-@o.MaDon" class="text-primary fs-5">...</strong>
+                                                        </div>
+                                                        <div class="border-start mx-3"></div>
+                                                        <div>
+                                                            <small class="text-muted d-block">Dự kiến đến</small>
+                                                            <strong id="duration-display-@o.MaDon" class="text-danger fs-5">...</strong>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mt-2 text-center border-top pt-2">
+                                                        <span id="route-status-text-@o.MaDon" class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Map container styles */
+    .map-container {
+        height: 400px;
+    }
+
+    /* Map lớn hơn khi ở trạng thái "Đang giao" */
+    .map-container.map-large {
+        height: 600px;
+    }
+
+    /* Responsive: Trên mobile, map vẫn giữ kích thước hợp lý */
+    @@media (max-width: 768px) {
+        .map-container {
+            height: 350px;
+        }
+
+        .map-container.map-large {
+            height: 500px;
+        }
+    }
+</style>
+
+<script>
+    function sendLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    const indicator = document.getElementById('gps-status-indicator');
+                    const text = document.getElementById('gps-text');
+
+                    indicator.className = 'badge bg-success p-2';
+                    text.innerText = `Đang chia sẻ vị trí (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+
+                    fetch('/Shipper/UpdateLocation', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            latitude: lat.toString(),
+                            longitude: lng.toString()
+                        })
+                    }).catch(err => console.error("Gửi GPS lỗi:", err));
+
+                },
+                function (error) {
+                    const indicator = document.getElementById('gps-status-indicator');
+                    const text = document.getElementById('gps-text');
+                    indicator.className = 'badge bg-danger p-2';
+
+                    let msg = "Lỗi GPS";
+                    if (error.code == 1) msg = "Vui lòng bật GPS";
+                    else if (error.code == 2) msg = "Không tìm thấy vị trí";
+                    else if (error.code == 3) msg = "Timeout GPS";
+
+                    text.innerText = msg;
+                },
+                { enableHighAccuracy: true }
+            );
+        } else {
+            const indicator = document.getElementById('gps-status-indicator');
+            indicator.className = 'badge bg-danger p-2';
+            document.getElementById('gps-text').innerText = "Trình duyệt không hỗ trợ GPS";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        sendLocation(); 
+        setInterval(sendLocation, 15000);
+    });
+</script>
+
+@* MAP SCRIPT - Chỉ load khi có đơn đang xử lý *@
+@if (Model != null && Model.Any(o => !string.Equals(o.TrangThai, "Hoàn thành", StringComparison.OrdinalIgnoreCase) &&
+    (string.Equals(o.TrangThai, "Đang lấy món", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(o.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase))))
+{
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+}
+
+@section scripts {
+    @if (Model != null && Model.Any(o => !string.Equals(o.TrangThai, "Hoàn thành", StringComparison.OrdinalIgnoreCase) &&
+        (string.Equals(o.TrangThai, "Đang lấy món", StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(o.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase))))
+    {
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-rotatedmarker/0.2.0/leaflet.rotatedMarker.min.js"></script>
+        <script>
+        var maps = {};
+        var routeLines = {};
+        var markers = {};
+        var isMapInit = {};
+
+        @foreach (var o in Model.Where(x => !string.Equals(x.TrangThai, "Hoàn thành", StringComparison.OrdinalIgnoreCase) &&
+            (string.Equals(x.TrangThai, "Đang lấy món", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(x.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase))))
+        {
+            <text>
+            (function() {
+                var maDon = '@o.MaDon';
+                var initialLat = 10.7769; 
+                var initialLng = 106.7009;
+
+                // Custom Icons
+                var iconShipper = L.icon({ iconUrl: '/images/arrows/shipper.png', iconSize: [40, 40], iconAnchor: [20, 20] });
+                var iconRest = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] });
+                var iconCust = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] });
+
+                function initMap() {
+                    maps[maDon] = L.map('map-' + maDon).setView([initialLat, initialLng], 14);
+                    L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                        attribution: '&copy; Google Maps',
+                        subdomains: ['0', '1', '2', '3'],
+                        maxZoom: 20
+                    }).addTo(maps[maDon]);
+                    
+                    setTimeout(function() { maps[maDon].invalidateSize(); }, 500);
+
+                    markers[maDon] = {
+                        shipper: L.marker([0, 0], { icon: iconShipper, rotationAngle: 0 }).addTo(maps[maDon]).bindPopup("<b>Bạn (Shipper)</b>"),
+                        restaurant: L.marker([0, 0], { icon: iconRest }).addTo(maps[maDon]).bindPopup("<b>Nhà hàng</b><br>@o.TenNhaHang"),
+                        customer: L.marker([0, 0], { icon: iconCust }).addTo(maps[maDon]).bindPopup("<b>Khách hàng</b><br>@o.DiaChiKhachHang")
+                    };
+
+                    drawRoute();
+
+                    setInterval(drawRoute, 15000);
+                }
+
+                function drawRoute() {
+                    $.getJSON('/Shipper/GetShipperRoute?maDon=' + maDon, function(res) {
+                        if (res.success) {
+                            $('#distance-display-' + maDon).text(res.distanceText);
+                            $('#duration-display-' + maDon).text(res.durationText);
+                            $('#route-status-text-' + maDon).text(res.statusText).removeClass('bg-warning').addClass('bg-info');
+
+                            if (res.shipperPoint && res.shipperPoint.lat !== 0) {
+                                var newLatLng = [res.shipperPoint.lat, res.shipperPoint.lng];
+                                var oldLatLng = markers[maDon].shipper.getLatLng();
+
+                                if (oldLatLng && oldLatLng.lat !== 0 && (oldLatLng.lat !== newLatLng[0] || oldLatLng.lng !== newLatLng[1])) {
+                                    var angle = calculateAngle(oldLatLng.lat, oldLatLng.lng, newLatLng[0], newLatLng[1]);
+                                    markers[maDon].shipper.setRotationAngle(angle);
+                                }
+                                markers[maDon].shipper.setLatLng(newLatLng);
+                            }
+
+                            if (res.restaurantPoint && res.restaurantPoint.lat !== 0) {
+                                markers[maDon].restaurant.setLatLng([res.restaurantPoint.lat, res.restaurantPoint.lng]);
+                            }
+                            if (res.customerPoint && res.customerPoint.lat !== 0) {
+                                markers[maDon].customer.setLatLng([res.customerPoint.lat, res.customerPoint.lng]);
+                            }
+
+                            if (res.route && res.route.length > 0) {
+                                if (routeLines[maDon]) {
+                                    maps[maDon].removeLayer(routeLines[maDon]);
+                                }
+
+                                var latlngs = res.route.map(function(p) { return [p.lat, p.lng]; });
+                                var lineColor = res.routeType === "ToCustomer" ? '#198754' : '#0d6efd'; 
+
+                                routeLines[maDon] = L.polyline(latlngs, {
+                                    color: lineColor,
+                                    weight: 6,
+                                    opacity: 0.8,
+                                    lineCap: 'round'
+                                }).addTo(maps[maDon]);
+
+                                if (!isMapInit[maDon]) {
+                                    maps[maDon].fitBounds(routeLines[maDon].getBounds(), { padding: [50, 50] });
+                                    isMapInit[maDon] = true;
+                                }
+                            }
+                        } else {
+                            var errorMsg = res.message || 'Không thể tải dữ liệu đường đi';
+                            $('#route-status-text-' + maDon).text('❌ ' + errorMsg).removeClass('bg-warning bg-info').addClass('bg-danger');
+                            console.error('Lỗi GetShipperRoute cho đơn ' + maDon + ':', errorMsg);
+                        }
+                    }).fail(function(xhr, status, error) {
+                        $('#route-status-text-' + maDon).text('❌ Lỗi kết nối: ' + error).removeClass('bg-warning bg-info').addClass('bg-danger');
+                    });
+                }
+
+                function calculateAngle(lat1, lng1, lat2, lng2) {
+                    if (maps[maDon]) {
+                        var p1 = maps[maDon].latLngToContainerPoint([lat1, lng1]);
+                        var p2 = maps[maDon].latLngToContainerPoint([lat2, lng2]);
+                        return Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+                    }
+                    return 0;
+                }
+
+                $(document).ready(function() {
+                    initMap();
+                });
+            })();
+            </text>
+        }
+        </script>
+    }
+}

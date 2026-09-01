@@ -1,0 +1,183 @@
+@model IEnumerable<ĐACN.LoaiMonAn>
+@{
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewBag.Title = "Quản lý danh mục";
+    var soMonDict = ViewBag.SoMonTheoLoai as IDictionary<string, int> ?? new Dictionary<string, int>();
+    var success = ViewBag.Success as string;
+    var error = ViewBag.Error as string;
+}
+
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="color: #111827;">Quản lý danh mục</h2>
+        <p class="text-muted mb-0">Thiết lập các nhóm món ăn cho toàn hệ thống.</p>
+    </div>
+    <div>
+        <button class="btn btn-dark fw-medium px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAdd" style="border-radius: 8px;">
+            <span class="fs-5 me-1" style="line-height: 1;">+</span> Thêm danh mục
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(success))
+{
+    <div class="alert alert-success border-0 shadow-sm mt-3 text-center fw-bold" style="border-radius: 8px; background-color: #d1fae5; color: #065f46;">
+        @success
+    </div>
+}
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger border-0 shadow-sm mt-3 text-center fw-bold" style="border-radius: 8px; background-color: #fee2e2; color: #991b1b;">
+        @error
+    </div>
+}
+
+<div class="admin-card">
+    <div class="table-responsive">
+        <table class="table admin-table mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 80px; text-align: center;">Ảnh</th>
+                    <th style="width: 15%;">Mã DM</th>
+                    <th>Tên danh mục</th>
+                    <th style="width: 15%; text-align: center;">Số món</th>
+                    <th style="width: 120px; text-align: right;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model == null || !Model.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-5">
+                            <div class="fs-4 mb-2">🍽️</div>
+                            Chưa có danh mục nào trên hệ thống.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model)
+                    {
+                        var img = string.IsNullOrEmpty(item.HinhAnh)
+                            ? Url.Content("~/images/danhmuc/an_vat.png")
+                            : Url.Content("~/images/danhmuc/" + item.HinhAnh);
+                        <tr>
+                            <td class="text-center">
+                                <img src="@img" style="width: 48px; height: 48px; object-fit: cover; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" />
+                            </td>
+                            <td class="fw-bold" style="color: #4f46e5;">#@item.MaLoai</td>
+                            <td class="fw-medium text-dark">@item.TenLoai</td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark px-3 py-2 border">
+                                    @(soMonDict.ContainsKey(item.MaLoai) ? soMonDict[item.MaLoai] : 0) món
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-light me-2 fw-medium"
+                                        style="border-radius: 6px; border: 1px solid #e5e7eb;"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalEdit"
+                                        data-id="@item.MaLoai"
+                                        data-name="@item.TenLoai"
+                                        data-img="@img">
+                                    Sửa
+                                </button>
+                                @using (Html.BeginForm("XoaDanhMuc", "Admin", FormMethod.Post, new { @class = "d-inline" }))
+                                {
+                                    <input type="hidden" name="id" value="@item.MaLoai" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger fw-medium" style="border-radius: 6px;" onclick="return confirm('Bạn có chắc muốn xóa danh mục này? Các món ăn thuộc danh mục có thể bị ảnh hưởng.');">
+                                        Xóa
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal thêm -->
+<div class="modal fade" id="modalAdd" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color: #111827;">Thêm danh mục mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            @using (Html.BeginForm("ThemDanhMuc", "Admin", FormMethod.Post, new { enctype = "multipart/form-data" }))
+            {
+                <div class="modal-body pt-4">
+                    <div class="mb-4">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Tên danh mục</label>
+                        <input type="text" name="TenLoai" class="form-control bg-light border-0 shadow-none p-3 rounded-3" required placeholder="VD: Món nước, Ăn vặt..." />
+                    </div>
+                    <div class="mb-2">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Hình ảnh đại diện</label>
+                        <input type="file" name="HinhAnhFile" class="form-control bg-light border-0 shadow-none p-3 rounded-3" accept=".png,.jpg,.jpeg,.webp" required />
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light fw-medium px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-dark fw-medium px-4" style="border-radius: 8px;">Tạo danh mục</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal sửa -->
+<div class="modal fade" id="modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color: #111827;">Cập nhật danh mục</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            @using (Html.BeginForm("CapNhatDanhMuc", "Admin", FormMethod.Post, new { enctype = "multipart/form-data" }))
+            {
+                <div class="modal-body pt-4">
+                    <input type="hidden" name="MaLoai" id="editMaLoai" />
+                    
+                    <div class="mb-4">
+                        <label class="text-muted fw-bold mb-2" style="font-size: 0.8rem; text-transform: uppercase;">Tên danh mục</label>
+                        <input type="text" name="TenLoai" id="editTenLoai" class="form-control bg-light border-0 shadow-none p-3 rounded-3" required />
+                    </div>
+                    
+                    <div class="mb-2">
+                        <label class="text-muted fw-bold mb-3 d-block" style="font-size: 0.8rem; text-transform: uppercase;">Hình ảnh hiện tại</label>
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <img id="editPreview" src="" class="rounded-3" style="width: 72px; height: 72px; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+                            <div>
+                                <input type="file" name="HinhAnhMoi" class="form-control bg-light border-0 shadow-none p-2 rounded-3" accept=".png,.jpg,.jpeg,.webp" style="font-size: 0.9rem;" />
+                                <small class="text-muted mt-1 d-block">Bỏ qua nếu không muốn thay đổi hình.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light fw-medium px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary fw-medium px-4" style="border-radius: 8px;">Lưu thay đổi</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        const editModal = document.getElementById('modalEdit');
+        editModal.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const name = button.getAttribute('data-name');
+            const img = button.getAttribute('data-img');
+
+            document.getElementById('editMaLoai').value = id;
+            document.getElementById('editTenLoai').value = name;
+            document.getElementById('editPreview').src = img;
+        });
+    </script>
+}
+

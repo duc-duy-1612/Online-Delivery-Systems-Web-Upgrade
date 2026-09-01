@@ -1,0 +1,156 @@
+@model ĐACN.Models.DonHangDetailsViewModel
+@using System.Linq
+
+@{
+    ViewBag.Title = "Shipper - Chi tiết đơn hàng";
+    Layout = "~/Views/Shared/_LayoutShipper.cshtml";
+}
+
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-3">
+                <div>
+                    <span class="text-uppercase text-muted fw-bold" style="letter-spacing: 1px; font-size: 0.85rem;">CHI TIẾT ĐƠN HÀNG</span>
+                    <h2 class="mb-0 fw-bold mt-1">@(Model != null ? "#" + Model.MaDon : "")</h2>
+                </div>
+                <a href="@Url.Action("Index", "Shipper")" class="btn btn-outline-dark" style="border-radius: 50px; padding: 8px 24px;">Quay lại</a>
+            </div>
+
+            @if (Model == null)
+            {
+                <div class="alert alert-danger" style="border-radius: 12px;">Không tìm thấy đơn hàng.</div>
+            }
+            else
+            {
+                <div class="card shadow-sm mb-4" style="border-radius: 16px; border: none;">
+                    <div class="card-body p-4 p-md-5">
+                        
+                        <div class="row mb-5">
+                            <div class="col-md-6 mb-4 mb-md-0">
+                                <div class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">TRẠNG THÁI</div>
+                                <span class="badge bg-dark fw-normal px-3 py-2" style="font-size: 0.9rem; border-radius: 50px;">@Model.TrangThai</span>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <div class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">THỜI GIAN ĐẶT</div>
+                                <div class="fw-bold text-dark fs-5">@(Model.ThoiGianDat?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-5">
+                            <div class="col-md-6 border-end">
+                                <div class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">THÔNG TIN NHÀ HÀNG</div>
+                                @if (Model.NhaHang != null)
+                                {
+                                    <h5 class="fw-bold mb-1">@Model.NhaHang.TenNH</h5>
+                                    <p class="text-muted mb-1" style="font-size: 0.95rem;">@Model.NhaHang.DiaChi</p>
+                                    if (!string.IsNullOrEmpty(Model.NhaHang.SDT))
+                                    {
+                                        <a href="tel:@Model.NhaHang.SDT" class="text-dark fw-bold text-decoration-none">@Model.NhaHang.SDT</a>
+                                    }
+                                }
+                            </div>
+                            <div class="col-md-6 ps-md-4 mt-4 mt-md-0">
+                                <div class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">THÔNG TIN GIAO HÀNG</div>
+                                @if (Model.KhachHang != null)
+                                {
+                                    <h5 class="fw-bold mb-1">@Model.KhachHang.TenKH</h5>
+                                    <p class="text-muted mb-1" style="font-size: 0.95rem;">@Model.KhachHang.DiaChi</p>
+                                    if (!string.IsNullOrEmpty(Model.KhachHang.SDT))
+                                    {
+                                        <a href="tel:@Model.KhachHang.SDT" class="text-dark fw-bold text-decoration-none">@Model.KhachHang.SDT</a>
+                                    }
+                                }
+                            </div>
+                        </div>
+
+                        <div class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">CHI TIẾT MÓN ĂN</div>
+                        
+                        @if (Model.ChiTietMonAn != null && Model.ChiTietMonAn.Any())
+                        {
+                            <div class="table-responsive mb-4">
+                                <table class="table align-middle border-bottom">
+                                    <thead>
+                                        <tr class="text-muted" style="font-size: 0.85rem;">
+                                            <th class="ps-0 border-top-0 border-bottom-0 pb-3" style="font-weight: 500;">MÓN ĂN</th>
+                                            <th class="text-center border-top-0 border-bottom-0 pb-3" style="font-weight: 500;">SL</th>
+                                            <th class="text-end pe-0 border-top-0 border-bottom-0 pb-3" style="font-weight: 500;">THÀNH TIỀN</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.ChiTietMonAn)
+                                        {
+                                            <tr>
+                                                <td class="ps-0 py-3">
+                                                    <div class="d-flex align-items-center">
+                                                        @if (!string.IsNullOrEmpty(item.HinhAnh))
+                                                        {
+                                                            string imagePath = item.HinhAnh.StartsWith("~") ? item.HinhAnh : "~/images/monan/" + item.HinhAnh;
+                                                            <img src="@Url.Content(imagePath)" alt="@item.TenMon" class="rounded-3 me-3" style="width: 54px; height: 54px; object-fit: cover;" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="rounded-3 bg-light d-flex align-items-center justify-content-center me-3" style="width: 54px; height: 54px;">
+                                                                <span class="text-muted small">Ảnh</span>
+                                                            </div>
+                                                        }
+                                                        <div>
+                                                            <div class="fw-bold text-dark">@item.TenMon</div>
+                                                            <div class="text-muted small">@String.Format("{0:N0} đ", item.DonGia)</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="text-center py-3 fw-bold text-dark">x@(item.SoLuong)</td>
+                                                <td class="text-end pe-0 py-3 fw-bold text-dark">@String.Format("{0:N0} đ", item.ThanhTien)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-3 text-muted" style="font-size: 0.95rem;">
+                                <span>Tổng tiền món</span>
+                                <span class="fw-bold text-dark">@String.Format("{0:N0} đ", Model.TongTien ?? 0)</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-4 pb-4 border-bottom">
+                                <span class="text-success fw-bold">Thu nhập (Phí ship)</span>
+                                <span class="text-success fw-bold fs-5">+@String.Format("{0:N0} đ", Model.ShipFee)</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-uppercase fw-bold text-dark" style="letter-spacing: 1px; font-size: 0.85rem;">TỔNG THU</span>
+                                <span class="fw-bold text-dark fs-3">@String.Format("{0:N0} đ", (Model.TongTien ?? 0) + Model.ShipFee)</span>
+                            </div>
+                        }
+                        
+                    </div>
+                </div>
+            }
+
+            @if (Model != null && string.IsNullOrEmpty(Model.MaShipper))
+            {
+                <div class="mt-4 text-center">
+                    @using (Html.BeginForm("Accept", "Shipper", FormMethod.Post))
+                    {
+                        <input type="hidden" name="maDon" value="@Model.MaDon" />
+                        <button type="submit" class="btn btn-dark btn-lg w-100 fw-bold" style="border-radius: 50px; padding: 14px;">
+                            NHẬN ĐƠN NÀY
+                        </button>
+                    }
+                </div>
+            }
+            
+            @if (Model != null && !string.IsNullOrEmpty(Model.MaShipper))
+            {
+                <div class="d-grid gap-2 mt-4">
+                    <button class="btn btn-outline-primary btn-lg" style="border-radius: 50px; padding: 14px;" onclick="openChat('KH_@Model.MaKH', 'Khách hàng @(Model.KhachHang?.TenKH)', '@Model.MaDon')">
+                        <i class="bi bi-chat-dots-fill"></i> Chat với Khách hàng
+                    </button>
+                    <button class="btn btn-outline-success btn-lg" style="border-radius: 50px; padding: 14px;" onclick="openChat('NH_@(Model.NhaHang?.MaNH)', 'Nhà hàng @(Model.NhaHang?.TenNH)', '@Model.MaDon')">
+                        <i class="bi bi-chat-dots-fill"></i> Chat với Nhà hàng
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</div>

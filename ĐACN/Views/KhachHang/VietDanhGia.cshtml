@@ -1,0 +1,315 @@
+@model ĐACN.Models.DanhGiaViewModel
+
+@{
+    ViewBag.Title = "Đánh giá đơn hàng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    .review-container {
+        max-width: 650px;
+        margin: 0 auto;
+        position: relative;
+    }
+    .card-review {
+        border: none;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        border-radius: 1.25rem;
+        background: #ffffff;
+        overflow: hidden;
+    }
+    .card-review-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        color: white;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        border-radius: 1.25rem 1.25rem 0 0;
+    }
+    .avatar-lg {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #fff;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-top: -50px;
+        background: #fff;
+    }
+    .rating-star {
+        font-size: 2.5rem;
+        color: #e2e8f0;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        display: inline-block;
+        margin: 0 4px;
+    }
+    .rating-star:hover {
+        transform: scale(1.2);
+    }
+    .rating-star.selected {
+        color: #ffc107;
+        filter: drop-shadow(0 2px 4px rgba(255, 193, 7, 0.3));
+    }
+    .rating-star.selected.pop {
+        animation: popStar 0.4s ease-out;
+    }
+    @@keyframes popStar {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.3); }
+        100% { transform: scale(1); }
+    }
+    .step-section {
+        display: none;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.4s ease;
+    }
+    .step-section.active {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .form-control.review-textarea {
+        border-radius: 0.75rem;
+        border: 2px solid #e2e8f0;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        transition: all 0.3s ease;
+    }
+    .form-control.review-textarea:focus {
+        background-color: #fff;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+    }
+    .btn-action {
+        border-radius: 0.75rem;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+    .btn-action:hover {
+        transform: translateY(-2px);
+    }
+    .btn-skip {
+        color: #6c757d;
+        text-decoration: none;
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-weight: 500;
+        transition: color 0.2s;
+    }
+    .btn-skip:hover {
+        color: #dc3545;
+        text-decoration: underline;
+    }
+</style>
+
+<div class="container mt-5 mb-5">
+    <div class="review-container">
+        @using (Html.BeginForm("LuuDanhGia", "KhachHang", FormMethod.Post, new { id = "formDanhGia" }))
+        {
+            @Html.HiddenFor(m => m.MaDon)
+            @Html.HiddenFor(m => m.MaNH)
+            @Html.HiddenFor(m => m.MaShipper)
+
+            <!-- BƯỚC 1: Đánh giá nhà hàng -->
+            <div id="step-nhahang" class="step-section active">
+                <div class="card card-review">
+                    <div class="card-review-header">
+                        <h3 class="mb-1 fw-bold">Đánh giá món ăn</h3>
+                        <p class="mb-0 opacity-75">Chia sẻ trải nghiệm của bạn với nhà hàng này</p>
+                    </div>
+                    <div class="card-body text-center pt-0 px-4 pb-4">
+                        <img src="~/Content/Images/restaurant-icon.png" alt="Restaurant" class="avatar-lg mb-3" onerror="this.src='https://ui-avatars.com/api/?name=NH&background=0D8ABC&color=fff&size=100'" />
+                        <h4 class="fw-bold text-dark mb-4">@Model.TenNH</h4>
+
+                        <div class="mb-4">
+                            @Html.HiddenFor(m => m.SoSaoNhaHang, new { id = "ratingInputNH" })
+                            <div class="d-flex justify-content-center" id="star-container-nh">
+                                <i class="fas fa-star rating-star selected" data-value="1"></i>
+                                <i class="fas fa-star rating-star selected" data-value="2"></i>
+                                <i class="fas fa-star rating-star selected" data-value="3"></i>
+                                <i class="fas fa-star rating-star selected" data-value="4"></i>
+                                <i class="fas fa-star rating-star selected" data-value="5"></i>
+                            </div>
+                            <div class="mt-3 fs-5 text-warning fw-bold" id="rating-text-nh">Tuyệt vời</div>
+                        </div>
+
+                        <div class="mb-4 text-start">
+                            <label class="fw-bold mb-2 text-secondary">Chi tiết đánh giá (Tùy chọn)</label>
+                            @Html.TextAreaFor(m => m.BinhLuanNhaHang, new { @class = "form-control review-textarea", rows = "3", placeholder = "Món ăn hương vị thế nào? Hãy chia sẻ nhé..." })
+                        </div>
+
+                        <div class="d-grid gap-3">
+                            <button type="button" class="btn btn-primary btn-action btn-lg shadow-sm" onclick="nextStep()">
+                                Tiếp tục đánh giá tài xế <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <button type="button" class="btn-skip" onclick="nextStep()">Để sau, bỏ qua bước này</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BƯỚC 2: Đánh giá shipper -->
+            <div id="step-shipper" class="step-section">
+                <div class="card card-review">
+                    <div class="card-review-header" style="background: linear-gradient(135deg, #198754 0%, #20c997 100%);">
+                        <h3 class="mb-1 fw-bold">Đánh giá tài xế</h3>
+                        <p class="mb-0 opacity-75">Đội ngũ giao hàng rất mong nhận được góp ý từ bạn</p>
+                    </div>
+                    
+                    <div class="card-body text-center pt-0 px-4 pb-4">
+                        @if (!string.IsNullOrEmpty(Model.MaShipper))
+                        {
+                            <img src="~/Content/Images/shipper-icon.png" alt="Shipper" class="avatar-lg mb-3" onerror="this.src='https://ui-avatars.com/api/?name=TX&background=198754&color=fff&size=100'" />
+                            <h4 class="fw-bold text-dark mb-4">@Model.TenShipper</h4>
+
+                            <div class="mb-4">
+                                @Html.HiddenFor(m => m.SoSaoShipper, new { id = "ratingInputShipper" })
+                                <div class="d-flex justify-content-center" id="star-container-shipper">
+                                    <i class="fas fa-star rating-star selected" data-value="1"></i>
+                                    <i class="fas fa-star rating-star selected" data-value="2"></i>
+                                    <i class="fas fa-star rating-star selected" data-value="3"></i>
+                                    <i class="fas fa-star rating-star selected" data-value="4"></i>
+                                    <i class="fas fa-star rating-star selected" data-value="5"></i>
+                                </div>
+                                <div class="mt-3 fs-5 text-warning fw-bold" id="rating-text-shipper">Tuyệt vời</div>
+                            </div>
+
+                            <div class="mb-4 text-start">
+                                <label class="fw-bold mb-2 text-secondary">Chi tiết đánh giá (Tùy chọn)</label>
+                                @Html.TextAreaFor(m => m.BinhLuanShipper, new { @class = "form-control review-textarea", rows = "3", placeholder = "Tài xế có thân thiện không? Giao hàng nhanh không?" })
+                            </div>
+
+                            <div class="d-grid gap-3 mt-4">
+                                <button type="submit" class="btn btn-success btn-action btn-lg shadow-sm">
+                                    <i class="fas fa-check-circle me-2"></i> Hoàn tất & Gửi đánh giá
+                                </button>
+                                <button type="button" class="btn-skip" onclick="redirectToHome()">Đóng và về Trang chủ</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mt-5 mb-4">
+                                <div class="alert alert-info border-0 shadow-sm rounded-3">
+                                    <i class="fas fa-info-circle me-2"></i> Đơn hàng này không có thông tin tài xế để đánh giá.
+                                </div>
+                            </div>
+                            <div class="d-grid gap-3">
+                                <button type="submit" class="btn btn-success btn-action btn-lg shadow-sm">
+                                    <i class="fas fa-paper-plane me-2"></i> Gửi đánh giá Nhà hàng
+                                </button>
+                                <button type="button" class="btn-skip" onclick="redirectToHome()">Hủy và về Trang chủ</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    function setupStarRating(containerId, inputId, textId) {
+        const stars = document.querySelectorAll(`#${containerId} .rating-star`);
+        const input = document.getElementById(inputId);
+        const textLabel = document.getElementById(textId);
+        const labels = ["Rất tệ", "Không hài lòng", "Bình thường", "Hài lòng", "Tuyệt vời"];
+
+        stars.forEach(star => {
+            star.addEventListener('click', function () {
+                const value = this.getAttribute('data-value');
+                input.value = value;
+
+                stars.forEach(s => {
+                    s.classList.remove('pop');
+                    if (s.getAttribute('data-value') <= value) {
+                        s.classList.add('selected');
+                    } else {
+                        s.classList.remove('selected');
+                    }
+                });
+                
+                // Add pop animation to the clicked star
+                this.classList.add('pop');
+                setTimeout(() => this.classList.remove('pop'), 400);
+
+                textLabel.textContent = labels[value - 1];
+                
+                // Optional color change based on rating
+                if(value <= 2) {
+                    textLabel.className = "mt-3 fs-5 fw-bold text-danger";
+                } else if(value == 3) {
+                    textLabel.className = "mt-3 fs-5 fw-bold text-info";
+                } else {
+                    textLabel.className = "mt-3 fs-5 fw-bold text-warning";
+                }
+            });
+            
+            // Hover effects
+            star.addEventListener('mouseenter', function() {
+                const value = this.getAttribute('data-value');
+                stars.forEach(s => {
+                    if (s.getAttribute('data-value') <= value) {
+                        s.style.opacity = '1';
+                        s.style.transform = 'scale(1.1)';
+                    } else {
+                        s.style.opacity = '0.5';
+                    }
+                });
+            });
+            
+            star.addEventListener('mouseleave', function() {
+                stars.forEach(s => {
+                    s.style.opacity = '1';
+                    s.style.transform = 'scale(1)';
+                });
+            });
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        setupStarRating('star-container-nh', 'ratingInputNH', 'rating-text-nh');
+        setupStarRating('star-container-shipper', 'ratingInputShipper', 'rating-text-shipper');
+    });
+
+    function nextStep() {
+        const step1 = document.getElementById('step-nhahang');
+        const step2 = document.getElementById('step-shipper');
+        
+        step1.style.opacity = '0';
+        step1.style.transform = 'translateY(-20px)';
+        
+        setTimeout(() => {
+            step1.classList.remove('active');
+            step2.classList.add('active');
+            
+            // Force reflow
+            void step2.offsetWidth;
+            
+            step2.style.opacity = '1';
+            step2.style.transform = 'translateY(0)';
+        }, 400);
+    }
+
+    function redirectToHome() {
+        Swal.fire({
+            title: 'Bạn có chắc chắn?',
+            text: "Bạn sẽ thoát mà không gửi đánh giá?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Có, thoát',
+            cancelButtonText: 'Không'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '@Url.Action("TrangChu", "Home")';
+            }
+        });
+    }
+</script>

@@ -1,0 +1,732 @@
+-- 1. KHỞI TẠO DATABASE
+
+
+CREATE DATABASE FoodDeliveryDB;
+GO
+USE FoodDeliveryDB;
+GO
+
+-- =============================================
+-- 2. TẠO BẢNG (SCHEMA) - THEO THỨ TỰ CHA TRƯỚC CON SAU
+-- =============================================
+
+-- 2.1. Tài Khoản
+CREATE TABLE TaiKhoan (
+    MaTK NVARCHAR(20) PRIMARY KEY,
+    TenDangNhap NVARCHAR(50) NOT NULL,
+    MatKhau NVARCHAR(200) NOT NULL,
+    VaiTro NVARCHAR(20) NOT NULL,
+    TrangThai BIT DEFAULT 1
+);
+GO
+
+-- 2.2. Loại Món Ăn
+CREATE TABLE LoaiMonAn (
+    MaLoai NVARCHAR(20) PRIMARY KEY,
+    TenLoai NVARCHAR(100),
+    HinhAnh NVARCHAR(50)
+);
+GO
+
+-- 2.3. Khách Hàng
+CREATE TABLE KhachHang (
+    MaKH NVARCHAR(20) PRIMARY KEY,
+    TenKH NVARCHAR(100),
+    SDT NVARCHAR(20),
+    DiaChi NVARCHAR(300),
+    MaTK NVARCHAR(20) FOREIGN KEY REFERENCES TaiKhoan(MaTK),
+    Latitude FLOAT,
+    Longitude FLOAT,
+    HinhAnh NVARCHAR(100)
+);
+GO
+
+-- 2.4. Shipper
+CREATE TABLE Shipper (
+    MaShipper NVARCHAR(20) PRIMARY KEY,
+    TenShipper NVARCHAR(100),
+    SDT NVARCHAR(20),
+    BienSoXe NVARCHAR(50),
+    MaTK NVARCHAR(20) FOREIGN KEY REFERENCES TaiKhoan(MaTK),
+    HinhAnh NVARCHAR(255),
+    DiemDanhGia DECIMAL(3, 1),
+    ThuNhap DECIMAL(12, 2),
+    Latitude FLOAT,
+    Longitude FLOAT
+);
+GO
+
+-- 2.5. Nhà Hàng
+CREATE TABLE NhaHang (
+    MaNH NVARCHAR(10) PRIMARY KEY,
+    TenNH NVARCHAR(200),
+    DiaChi NVARCHAR(300),
+    SDT NVARCHAR(20),
+    MaTK NVARCHAR(20) FOREIGN KEY REFERENCES TaiKhoan(MaTK),
+    TrangThai NVARCHAR(50) DEFAULT N'Đang mở cửa',
+    HinhAnh NVARCHAR(255),
+    MoTa NVARCHAR(300),
+    Latitude FLOAT,
+    Longitude FLOAT,
+    
+    CONSTRAINT CHK_NhaHang_TrangThai CHECK (TrangThai IN (N'Đang mở cửa', N'Đã đóng cửa', N'Đóng cửa vĩnh viễn'))
+);
+GO
+
+-- 2.6. Món Ăn
+CREATE TABLE MonAn (
+    MaMon NVARCHAR(20) PRIMARY KEY,
+    MaNH NVARCHAR(10) FOREIGN KEY REFERENCES NhaHang(MaNH),
+    TenMon NVARCHAR(200),
+    MaLoai NVARCHAR(20) FOREIGN KEY REFERENCES LoaiMonAn(MaLoai),
+    Gia DECIMAL(12, 2),
+    MoTa NVARCHAR(500),
+    HinhAnh NVARCHAR(255),
+    TrangThai BIT DEFAULT 1
+);
+GO
+
+-- 2.7. Đơn Hàng
+CREATE TABLE DonHang (
+    MaDon NVARCHAR(30) PRIMARY KEY,
+    MaKH NVARCHAR(20) FOREIGN KEY REFERENCES KhachHang(MaKH),
+    MaNH NVARCHAR(10) FOREIGN KEY REFERENCES NhaHang(MaNH),
+    MaShipper NVARCHAR(20) FOREIGN KEY REFERENCES Shipper(MaShipper),
+    TrangThai NVARCHAR(50),
+    TongTien DECIMAL(12, 2),
+    ThoiGianDat DATETIME DEFAULT SYSUTCDATETIME(),
+    DiaChiGiaoHang NVARCHAR(300),
+    SDTGiaoHang NVARCHAR(20),
+    Latitude FLOAT,
+    Longitude FLOAT,
+    ShipperLatitude FLOAT,
+    ShipperLongitude FLOAT,
+    ShipFee DECIMAL(12, 2),
+
+    CONSTRAINT CHK_DonHang_TrangThai CHECK (TrangThai IN (N'Chờ xác nhận', N'Đang lấy món', N'Đang giao', N'Hoàn thành', N'Đã hủy', N'Đã nhận đơn'))
+);
+GO
+
+-- 2.8. Chi Tiết Đơn Hàng (IDENTITY PK)
+CREATE TABLE ChiTietDonHang (
+    MaChiTiet INT IDENTITY(1,1) PRIMARY KEY,
+    MaDon NVARCHAR(30) NOT NULL FOREIGN KEY REFERENCES DonHang(MaDon),
+    MaMon NVARCHAR(20) NOT NULL FOREIGN KEY REFERENCES MonAn(MaMon),
+    SoLuong INT,
+    DonGia DECIMAL(12, 2),
+    Note NVARCHAR(MAX)
+);
+GO
+
+-- 2.9. Lịch Sử Giỏ Hàng
+CREATE TABLE LichSuGioHang (
+    MaGH NVARCHAR(20) PRIMARY KEY,
+    MaNH NVARCHAR(10) NOT NULL FOREIGN KEY REFERENCES NhaHang(MaNH),
+    MaMon NVARCHAR(20) NOT NULL FOREIGN KEY REFERENCES MonAn(MaMon),
+    SoLuong INT NOT NULL,
+    DonGia DECIMAL(12, 2) NOT NULL,
+    TongTien DECIMAL(12, 2) NOT NULL,
+    ThoiGianChon DATETIME NOT NULL,
+    MaKH NVARCHAR(20) NOT NULL FOREIGN KEY REFERENCES KhachHang(MaKH),
+    Note NVARCHAR(MAX)
+);
+GO
+
+-- 2.10. Đánh Giá (Bảng chung - nếu dùng)
+CREATE TABLE DanhGia (
+    MaDanhGia INT IDENTITY(1,1) PRIMARY KEY,
+    MaDon NVARCHAR(30) FOREIGN KEY REFERENCES DonHang(MaDon),
+    Diem INT,
+    BinhLuan NVARCHAR(500)
+);
+GO
+
+-- 2.11. Đánh Giá Nhà Hàng
+CREATE TABLE DanhGiaNhaHang (
+    MaDGNH NVARCHAR(20) PRIMARY KEY,
+    MaDon NVARCHAR(30) NOT NULL FOREIGN KEY REFERENCES DonHang(MaDon),
+    MaKH NVARCHAR(20) NOT NULL FOREIGN KEY REFERENCES KhachHang(MaKH),
+    MaNH NVARCHAR(10) NOT NULL FOREIGN KEY REFERENCES NhaHang(MaNH),
+    SoSao INT,
+    BinhLuan NVARCHAR(MAX),
+    ThoiGian DATETIME,
+    HinhAnh NVARCHAR(255)
+);
+GO
+
+-- 2.12. Đánh Giá Shipper
+CREATE TABLE DanhGiaShipper (
+    MaDG VARCHAR(20) PRIMARY KEY,
+    MaDon NVARCHAR(30) NOT NULL FOREIGN KEY REFERENCES DonHang(MaDon),
+    MaKH NVARCHAR(20) NOT NULL FOREIGN KEY REFERENCES KhachHang(MaKH),
+    MaShipper NVARCHAR(20) NOT NULL FOREIGN KEY REFERENCES Shipper(MaShipper),
+    SoSao INT,
+    BinhLuan NVARCHAR(MAX),
+    ThoiGian DATETIME
+);
+GO
+
+-- =============================================
+-- 3. INSERT DỮ LIỆU
+-- =============================================
+
+-- Insert Tài Khoản
+INSERT INTO TaiKhoan (MaTK, TenDangNhap, MatKhau, VaiTro, TrangThai) VALUES 
+(N'admin01', N'admin01', N'123456', N'Admin', 1),
+(N'khach01', N'khach01', N'123456', N'KhachHang', 1),
+(N'khach02', N'khach02', N'123456', N'KhachHang', 1),
+(N'khach03', N'khach03', N'123456', N'KhachHang', 1),
+(N'khach04', N'khach04', N'123456', N'KhachHang', 1),
+(N'khach05', N'khach05', N'123456', N'KhachHang', 1),
+(N'khach06', N'khach06', N'123456', N'KhachHang', 1),
+(N'khach07', N'khach07', N'123456', N'KhachHang', 1),
+(N'khach08', N'khach08', N'123456', N'KhachHang', 1),
+(N'khach09', N'khach09', N'123456', N'KhachHang', 1),
+(N'khach10', N'khach10', N'123456', N'KhachHang', 1),
+(N'nhahang01', N'nhahang01', N'123456', N'NhaHang', 1),
+(N'nhahang02', N'nhahang02', N'123456', N'NhaHang', 1),
+(N'nhahang03', N'nhahang03', N'123456', N'NhaHang', 1),
+(N'nhahang04', N'nhahang04', N'123456', N'NhaHang', 1),
+(N'nhahang05', N'nhahang05', N'123456', N'NhaHang', 1),
+(N'nhahang06', N'nhahang06', N'123456', N'NhaHang', 1),
+(N'nhahang07', N'nhahang07', N'123456', N'NhaHang', 1),
+(N'nhahang08', N'nhahang08', N'123456', N'NhaHang', 1),
+(N'nhahang09', N'nhahang09', N'123456', N'NhaHang', 1),
+(N'nhahang10', N'nhahang10', N'123456', N'NhaHang', 1),
+(N'nhahang11', N'nhahang11', N'123456', N'NhaHang', 1),
+(N'nhahang12', N'nhahang12', N'123456', N'NhaHang', 1),
+(N'nhahang13', N'nhahang13', N'123456', N'NhaHang', 1),
+(N'nhahang14', N'nhahang14', N'123456', N'NhaHang', 1),
+(N'nhahang15', N'nhahang15', N'123456', N'NhaHang', 1),
+(N'nhahang16', N'nhahang16', N'123456', N'NhaHang', 1),
+(N'nhahang17', N'nhahang17', N'123456', N'NhaHang', 1),
+(N'nhahang18', N'nhahang18', N'123456', N'NhaHang', 1),
+(N'nhahang19', N'nhahang19', N'123456', N'NhaHang', 1),
+(N'nhahang20', N'nhahang20', N'123456', N'NhaHang', 1),
+(N'nhahang21', N'nhahang21', N'123456', N'NhaHang', 1),
+(N'nhahang22', N'nhahang22', N'123456', N'NhaHang', 1),
+(N'nhahang23', N'nhahang23', N'123456', N'NhaHang', 1),
+(N'nhahang24', N'nhahang24', N'123456', N'NhaHang', 1),
+(N'nhahang25', N'nhahang25', N'123456', N'NhaHang', 1),
+(N'nhahang26', N'nhahang26', N'123456', N'NhaHang', 1),
+(N'nhahang27', N'nhahang27', N'123456', N'NhaHang', 1),
+(N'nhahang28', N'nhahang28', N'123456', N'NhaHang', 1),
+(N'nhahang29', N'nhahang29', N'123456', N'NhaHang', 1),
+(N'nhahang30', N'nhahang30', N'123456', N'NhaHang', 1),
+(N'nhahang31', N'nhahang31', N'123456', N'NhaHang', 1),
+(N'nhahang32', N'nhahang32', N'123456', N'NhaHang', 1),
+(N'nhahang33', N'nhahang33', N'123456', N'NhaHang', 1),
+(N'nhahang34', N'nhahang34', N'123456', N'NhaHang', 1),
+(N'nhahang35', N'nhahang35', N'123456', N'NhaHang', 1),
+(N'nhahang36', N'nhahang36', N'123456', N'NhaHang', 1),
+(N'nhahang37', N'nhahang37', N'123456', N'NhaHang', 1),
+(N'nhahang38', N'nhahang38', N'123456', N'NhaHang', 1),
+(N'nhahang39', N'nhahang39', N'123456', N'NhaHang', 1),
+(N'nhahang40', N'nhahang40', N'123456', N'NhaHang', 1),
+(N'nhahang41', N'nhahang41', N'123456', N'NhaHang', 1),
+(N'nhahang42', N'nhahang42', N'123456', N'NhaHang', 1),
+(N'nhahang43', N'nhahang43', N'123456', N'NhaHang', 1),
+(N'nhahang44', N'nhahang44', N'123456', N'NhaHang', 1),
+(N'nhahang45', N'nhahang45', N'123456', N'NhaHang', 1),
+(N'nhahang46', N'nhahang46', N'123456', N'NhaHang', 1),
+(N'nhahang47', N'nhahang47', N'123456', N'NhaHang', 1),
+(N'nhahang48', N'nhahang48', N'123456', N'NhaHang', 1),
+(N'nhahang49', N'nhahang49', N'123456', N'NhaHang', 1),
+(N'nhahang50', N'nhahang50', N'123456', N'NhaHang', 1),
+(N'shipper01', N'shipper01', N'123456', N'Shipper', 1),
+(N'shipper02', N'shipper02', N'123456', N'Shipper', 1),
+(N'shipper03', N'shipper03', N'123456', N'Shipper', 1),
+(N'shipper04', N'shipper04', N'123456', N'Shipper', 1),
+(N'shipper05', N'shipper05', N'123456', N'Shipper', 1),
+(N'shipper06', N'shipper06', N'123456', N'Shipper', 1),
+(N'shipper07', N'shipper07', N'123456', N'Shipper', 1),
+(N'shipper08', N'shipper08', N'123456', N'Shipper', 1),
+(N'shipper09', N'shipper09', N'123456', N'Shipper', 1),
+(N'shipper10', N'shipper10', N'123456', N'Shipper', 1),
+(N'shipper11', N'shipper11', N'123456', N'Shipper', 1),
+(N'shipper12', N'shipper12', N'123456', N'Shipper', 1),
+(N'shipper13', N'shipper13', N'123456', N'Shipper', 1),
+(N'shipper14', N'shipper14', N'123456', N'Shipper', 1),
+(N'shipper15', N'shipper15', N'123456', N'Shipper', 1),
+(N'shipper16', N'shipper16', N'123456', N'Shipper', 1),
+(N'shipper17', N'shipper17', N'123456', N'Shipper', 1),
+(N'shipper18', N'shipper18', N'123456', N'Shipper', 1),
+(N'shipper19', N'shipper19', N'123456', N'Shipper', 1),
+(N'shipper20', N'shipper20', N'123456', N'Shipper', 1),
+(N'TK001', N'khach11', N'123456', N'KhachHang', 1),
+(N'TK002', N'shipper21', N'123456', N'Shipper', 1),
+(N'TK003', N'khach12', N'123456', N'KhachHang', 1),
+(N'TK004', N'khach67', N'123456', N'KhachHang', 1),
+(N'TK005', N'dkeyy0408', N'123456', N'KhachHang', 1),
+(N'TK006', N'dkeyy', N'123456', N'KhachHang', 1),
+(N'TK007', N'dkeyy04', N'1234', N'KhachHang', 1),
+(N'TK008', N'khanhayho', N'123456', N'KhachHang', 0),
+(N'TK009', N'dkeyy01', N'1234', N'KhachHang', 1),
+(N'TK010', N'dkeyy03', N'1234', N'KhachHang', 1),
+(N'TK011', N'shipper22', N'123456', N'Shipper', 1),
+(N'TK012', N'nhahang51', N'123456', N'NhaHang', 1),
+(N'TK638991625702317056', N'Khach100', N'123456', N'KhachHang', 1);
+GO
+
+-- Insert Loại Món
+INSERT INTO LoaiMonAn (MaLoai, TenLoai, HinhAnh) VALUES 
+(N'AnVat', N'AnVat', NULL), (N'Bun', N'Bun', NULL), (N'Chay', N'Chay', NULL),
+(N'Com', N'Com', NULL), (N'Haisan', N'Haisan', NULL), (N'Lau', N'Lau', NULL),
+(N'Mi', N'Mi', NULL), (N'Pho', N'Pho', NULL), (N'Pizza', N'Pizza', NULL),
+(N'Steak', N'Steak', NULL), (N'Sushi', N'Sushi', NULL), (N'Trasua', N'Trasua', NULL);
+GO
+
+-- Insert Khách Hàng
+INSERT INTO KhachHang (MaKH, TenKH, SDT, DiaChi, MaTK, Latitude, Longitude, HinhAnh) VALUES 
+(N'KH001', N'Khach Hang 1', N'0909090909', N'11 Duong Test, Quan 1, TP.HCM', N'khach01', 10.781971, 106.693081, N'/images/khachhang/kh_KH001_639003100436042388.jpg'),
+(N'KH002', N'Khach Hang 2', N'09082002', N'12 Duong Test, Quan 1, TP.HCM', N'khach02', NULL, NULL, NULL),
+(N'KH003', N'Khach Hang 3', N'09082003', N'13 Duong Test, Quan 1, TP.HCM', N'khach03', NULL, NULL, NULL),
+(N'KH004', N'Khach Hang 4', N'09082004', N'14 Duong Test, Quan 1, TP.HCM', N'khach04', NULL, NULL, NULL),
+(N'KH005', N'Khach Hang 5', N'09082005', N'15 Duong Test, Quan 1, TP.HCM', N'khach05', NULL, NULL, NULL),
+(N'KH006', N'Khach Hang 6', N'09082006', N'16 Duong Test, Quan 1, TP.HCM', N'khach06', NULL, NULL, NULL),
+(N'KH007', N'Khach Hang 7', N'09082007', N'17 Duong Test, Quan 1, TP.HCM', N'khach07', NULL, NULL, NULL),
+(N'KH008', N'Khach Hang 8', N'09082008', N'18 Duong Test, Quan 1, TP.HCM', N'khach08', NULL, NULL, NULL),
+(N'KH009', N'Khach Hang 9', N'09082009', N'19 Duong Test, Quan 1, TP.HCM', N'khach09', NULL, NULL, NULL),
+(N'KH010', N'Khach Hang 10', N'09082010', N'20 Duong Test, Quan 1, TP.HCM', N'khach10', NULL, NULL, NULL),
+(N'KH011', N'Khach Hang 11', N'09383838', N'21 Duong Test, Quan 1, TP.HCM', N'TK001', 10.781971, 106.693081, NULL),
+(N'KH012', N'Faker', N'111111', N'17 Dao Duy Tu, quan 10, TPHCM', N'TK003', 10.793679, 106.683445, NULL),
+(N'KH013', N'Nguyễn Công Khanh', N'0938180475', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'TK004', 15.874388, 108.333216, NULL),
+(N'KH015', N'Khanh', N'096202093', N'4242 nkjh, Xã Xuân Trường, Huyện Bảo Lạc, Tỉnh Cao Bằng', N'TK006', NULL, NULL, NULL),
+(N'KH016', N'khanh', N'34242', N'545 kjfkd, Phường 02, Quận Tân Bình, Thành phố Hồ Chí Minh', N'TK007', 21.003626, 105.836277, NULL),
+(N'KH017', N'Oner', N'0912345678', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'TK008', 15.874388, 108.333216, NULL),
+(N'KH018', N'jklsdfd', N'1234567890', N'sdfsg4 34535     5355@#$, Xã Hưng Phú, Huyện Phước Long, Tỉnh Bạc Liêu', N'TK009', NULL, NULL, NULL),
+(N'KH019', N'khah', N'1234567890', N'99C Cộng Hòa, Phường 04, Quận Tân Bình, Thành phố Hồ Chí Minh', N'TK010', 10.801673, 106.649761, NULL);
+GO
+
+-- Insert Shipper
+INSERT INTO Shipper (MaShipper, TenShipper, SDT, BienSoXe, MaTK, HinhAnh, DiemDanhGia, ThuNhap, Latitude, Longitude) VALUES 
+(N'SP001', N'Shipper 1', N'09173001', N'79A-101', N'shipper01', N'/images/shipper/Doran_638998532117615855.png', 4.9, 12000000.00, 10.8017505, 106.7106249),
+(N'SP002', N'Shipper 2', N'09173002', N'79A-102', N'shipper02', NULL, 4.3, 9500000.00, NULL, NULL),
+(N'SP003', N'Shipper 3', N'09173003', N'79A-103', N'shipper03', NULL, 4.6, 10800000.00, NULL, NULL),
+(N'SP004', N'Shipper 4', N'09173004', N'79A-104', N'shipper04', NULL, 4.7, 11200000.00, NULL, NULL),
+(N'SP005', N'Shipper 5', N'09173005', N'79A-105', N'shipper05', NULL, 4.9, 14500000.00, NULL, NULL),
+(N'SP006', N'Shipper 6', N'09173006', N'79A-106', N'shipper06', NULL, 4.2, 8800000.00, NULL, NULL),
+(N'SP007', N'Shipper 7', N'09173007', N'79A-107', N'shipper07', NULL, 4.5, 9900000.00, NULL, NULL),
+(N'SP008', N'Shipper 8', N'09173008', N'79A-108', N'shipper08', NULL, 4.4, 9300000.00, NULL, NULL),
+(N'SP009', N'Shipper 9', N'09173009', N'79A-109', N'shipper09', NULL, 4.1, 8700000.00, NULL, NULL),
+(N'SP010', N'Shipper 10', N'09173010', N'79A-110', N'shipper10', NULL, 4.6, 11300000.00, NULL, NULL),
+(N'SP011', N'Shipper 11', N'09173011', N'79A-111', N'shipper11', NULL, 4.3, 9700000.00, NULL, NULL),
+(N'SP012', N'Shipper 12', N'09173012', N'79A-112', N'shipper12', NULL, 4.9, 12800000.00, NULL, NULL),
+(N'SP013', N'Shipper 13', N'09173013', N'79A-113', N'shipper13', NULL, 4.5, 9100000.00, NULL, NULL),
+(N'SP014', N'Shipper 14', N'09173014', N'79A-114', N'shipper14', NULL, 4.7, 10400000.00, NULL, NULL),
+(N'SP015', N'Shipper 15', N'09173015', N'79A-115', N'shipper15', NULL, 4.2, 9400000.00, NULL, NULL),
+(N'SP016', N'Shipper 16', N'09173016', N'79A-116', N'shipper16', NULL, 4.8, 11900000.00, NULL, NULL),
+(N'SP017', N'Shipper 17', N'09173017', N'79A-117', N'shipper17', NULL, 4.6, 9800000.00, NULL, NULL),
+(N'SP018', N'Shipper 18', N'09173018', N'79A-118', N'shipper18', NULL, 4.9, 13600000.00, NULL, NULL),
+(N'SP019', N'Shipper 19', N'09173019', N'79A-119', N'shipper19', NULL, 4.4, 9900000.00, NULL, NULL),
+(N'SP020', N'Shipper 20', N'09173020', N'79A-120', N'shipper20', NULL, 4.8, 12800000.00, NULL, NULL),
+(N'SP021', N'Shipper21', N'0938123456', N'79A-3636', N'TK002', N'/images/shipper/faker_639000560035896819.jpg', NULL, NULL, NULL, NULL),
+(N'SP022', N'haha', N'1234567890', N'1234', N'TK011', N'/images/shipper/Doran_639002762624702970.png', NULL, NULL, 10.8007712, 106.6548894);
+GO
+
+-- Insert Nhà Hàng
+INSERT INTO NhaHang (MaNH, TenNH, DiaChi, SDT, MaTK, TrangThai, HinhAnh, MoTa, Latitude, Longitude) VALUES 
+(N'NH001', N'Com Tam Cali', N'123 Le Van Sy, Quan 3, TP.HCM', N'0901000001', N'nhahang01', N'Đang mở cửa', N'comtam_saigon.jpg', N'Cơm ngon', 10.786222, 106.680885),
+(N'NH002', N'Pho Thin Sai Gon', N'45 Nguyen Trai, Quan 5, TP.HCM', N'0902000002', N'nhahang02', N'Đang mở cửa', N'pho_truyenthong.jpg', NULL, 10.844517, 106.774799),
+(N'NH003', N'Bún Chả Hà Nội 26', N'8A/9C2 Thái Văn Lung , Quận 1 , TP. HCM', N'09381114', N'nhahang03', N'Đang mở cửa', N'BunCha26_639002221141353146.jpg', NULL, 10.788176, 106.702643),
+(N'NH004', N'Pizza 4Ps Nguyen Hue', N'8 Le Thanh Ton, Quan 1, TP.HCM', N'0904000004', N'nhahang04', N'Đang mở cửa', N'pizza_italy.jpg', NULL, 10.781848, 106.705108),
+(N'NH005', N'Lau Thai TomYum 99', N'67 Nguyen Tri Phuong, Quan 10, TP.HCM', N'0905000005', N'nhahang05', N'Đang mở cửa', N'lau_thai.jpg', NULL, 10.751624, 106.669488),
+(N'NH006', N'Sushi Hokkaido', N'102 Nguyen Dinh Chieu, Quan 3, TP.HCM', N'0906000006', N'nhahang06', N'Đang mở cửa', N'sushi_hokkaido.jpg', NULL, 10.803736, 106.680789),
+(N'NH007', N'Banh Canh Cua Ut Le', N'11 Nguyen Thien Thuat, Quan 3, TP.HCM', N'0907000007', N'nhahang07', N'Đang mở cửa', N'banhcanh_cua.jpg', NULL, 10.805492, 106.69918),
+(N'NH008', N'Com Nieu Sai Gon', N'120 Ly Tu Trong, Quan 1, TP.HCM', N'0908000008', N'nhahang08', N'Đang mở cửa', N'comnieu_saigon.jpg', NULL, 10.773257, 106.696083),
+(N'NH009', N'Lau Nuong Dai Phat', N'72 Nguyen Huu Canh, Binh Thanh, TP.HCM', N'0909000009', N'nhahang09', N'Đang mở cửa', N'lau_nuong_daiphat.jpg', NULL, 10.791196, 106.718282),
+(N'NH010', N'Ga Ran Toky', N'15 Vo Thi Sau, Quan 3, TP.HCM', N'0910000010', N'nhahang10', N'Đang mở cửa', N'ga_ran_toky.jpg', NULL, 10.785672, 106.689829),
+(N'NH011', N'Highlands Coffee Pasteur', N'146 Pasteur, Quan 1, TP.HCM', N'0911000011', N'nhahang11', N'Đang mở cửa', N'highlands_coffee.jpg', NULL, 10.775497, 106.700706),
+(N'NH012', N'Mi Cay Seoul', N'21 Nguyen Tri Phuong, Quan 10, TP.HCM', N'0912000012', N'nhahang12', N'Đang mở cửa', N'mi_cay_seoul.jpg', NULL, 10.751624, 106.669488),
+(N'NH013', N'Lau Bo Ba Toa', N'88 Nguyen Thong, Quan 3, TP.HCM', N'0913000013', N'nhahang13', N'Đang mở cửa', N'lau_bo_batoa.jpg', NULL, 10.781986, 106.679083),
+(N'NH014', N'Com Ga Xoi Mo A Chay', N'29 Nguyen Oanh, Go Vap, TP.HCM', N'0914000014', N'nhahang14', N'Đang mở cửa', N'com_ga_xoi_mo.jpg', NULL, 10.847047, 106.677602),
+(N'NH015', N'Oc Dem 102', N'54 Pham Van Hai, Tan Binh, TP.HCM', N'0915000015', N'nhahang15', N'Đang mở cửa', N'oc_dem.jpg', NULL, 10.781971, 106.693081),
+(N'NH016', N'Kichi Kichi Vincom', N'Vincom Dong Khoi, Quan 1, TP.HCM', N'0916000016', N'nhahang16', N'Đang mở cửa', N'kichi_kichi.jpg', NULL, 10.957558, 106.843173),
+(N'NH017', N'Banh Mi Huynh Hoa', N'26 Le Thi Rieng, Quan 1, TP.HCM', N'0917000017', N'nhahang17', N'Đang mở cửa', N'banh_mi_huynh_hoa.jpg', NULL, 10.771392, 106.692719),
+(N'NH018', N'Com Chay Tinh Tam', N'94 Le Van Sy, Quan 3, TP.HCM', N'0918000018', N'nhahang18', N'Đang mở cửa', N'com_chay_tinhtam.jpg', NULL, 10.786222, 106.680885),
+(N'NH019', N'Hu Tieu Nam Vang Thanh Dat', N'38 Tran Hung Dao, Quan 5, TP.HCM', N'0919000019', N'nhahang19', N'Đang mở cửa', N'hu_tieu_thanhdat.jpg', NULL, 10.766907, 106.694182),
+(N'NH020', N'Nha Hang Chay An Nhien', N'45 Hai Ba Trung, Quan 1, TP.HCM', N'0920000020', N'nhahang20', N'Đang mở cửa', N'chay_annhien.jpg', NULL, 10.790991, 106.689011),
+(N'NH021', N'Bun Dau Mam Tom Hang Khay', N'12 Tran Quoc Thao, Quan 3, TP.HCM', N'0921000021', N'nhahang21', N'Đang mở cửa', N'bundau_hangkhay.jpg', NULL, 10.785849, 106.681542),
+(N'NH022', N'Pizza Company Nguyen Trai', N'123 Nguyen Trai, Quan 5, TP.HCM', N'0922000022', N'nhahang22', N'Đang mở cửa', N'pizza_company.jpg', NULL, 10.769508, 106.690795),
+(N'NH023', N'Bun Cha Ha Noi 1986', N'78 Nguyen Gia Tri, Binh Thanh, TP.HCM', N'0923000023', N'nhahang23', N'Đang mở cửa', N'buncha_1986.jpg', NULL, 10.781971, 106.693081),
+(N'NH024', N'Lau Nam Ashima', N'60 Le Quy Don, Quan 3, TP.HCM', N'0924000024', N'nhahang24', N'Đang mở cửa', N'lau_nam_ashima.jpg', NULL, 10.791831, 106.67984),
+(N'NH025', N'Ga U Muoi Hoa Tieu', N'71 Truong Chinh, Tan Binh, TP.HCM', N'0925000025', N'nhahang25', N'Đang mở cửa', N'ga_u_muoi.jpg', NULL, 10.83748, 106.618811),
+(N'NH026', N'Com Nieu Vien Dong', N'91 Le Loi, Quan 1, TP.HCM', N'0926000026', N'nhahang26', N'Đang mở cửa', N'comnieu_viendong.jpg', NULL, 10.862366, 106.609528),
+(N'NH027', N'Lau Nuong Panda', N'17 Dien Bien Phu, Binh Thanh, TP.HCM', N'0927000027', N'nhahang27', N'Đang mở cửa', N'lau_nuong_panda.jpg', NULL, 10.800907, 106.714749),
+(N'NH028', N'Pho Thin Ha Noi', N'35 Nguyen Du, Quan 1, TP.HCM', N'0928000028', N'nhahang28', N'Đang mở cửa', N'pho_thin.jpg', NULL, 10.79054, 106.623291),
+(N'NH029', N'Banh Xeo Mien Tay', N'68 Le Van Sy, Quan 3, TP.HCM', N'0929000029', N'nhahang29', N'Đang mở cửa', N'banhxeo_mientay.jpg', NULL, 10.787386, 106.68274),
+(N'NH030', N'Bun Rieu Ganh', N'83 Cach Mang Thang 8, Quan 10, TP.HCM', N'0930000030', N'nhahang30', N'Đang mở cửa', N'bun_rieu_ganh.jpg', NULL, 10.774452, 106.687838),
+(N'NH031', N'Steak House Cowboy Jack', N'Vincom Le Thanh Ton, Quan 1, TP.HCM', N'0931000031', N'nhahang31', N'Đang mở cửa', N'steak_cowboyjack.jpg', NULL, 21.008478, 105.813372),
+(N'NH032', N'Com Ga Hai Nam', N'22 Vo Van Tan, Quan 3, TP.HCM', N'0932000032', N'nhahang32', N'Đang mở cửa', N'com_ga_hainam.jpg', NULL, 10.774292, 106.688209),
+(N'NH033', N'Sushi Shin', N'14 Nguyen Van Thu, Quan 1, TP.HCM', N'0933000033', N'nhahang33', N'Đang mở cửa', N'sushi_shin.jpg', NULL, 10.789434, 106.698537),
+(N'NH034', N'Bun Mam Co Ba', N'88 Nguyen Van Dau, Binh Thanh, TP.HCM', N'0934000034', N'nhahang34', N'Đang mở cửa', N'bun_mam_coba.jpg', NULL, 10.781971, 106.693081),
+(N'NH035', N'Lau Cua Dong', N'95 Nguyen Tri Phuong, Quan 10, TP.HCM', N'0935000035', N'nhahang35', N'Đang mở cửa', N'lau_cua_dong.jpg', NULL, 10.751624, 106.669488),
+(N'NH036', N'Com Nha Que', N'120 Tran Quang Dieu, Quan 3, TP.HCM', N'0936000036', N'nhahang36', N'Đang mở cửa', N'com_nha_que.jpg', NULL, 10.796957, 106.678119),
+(N'NH037', N'Banh Uot Ban Me', N'42 Nguyen Huu Canh, Binh Thanh, TP.HCM', N'0937000037', N'nhahang37', N'Đang mở cửa', N'banh_uot_banme.jpg', NULL, 10.791196, 106.718282),
+(N'NH038', N'BBQ Han Quoc 88', N'97 Nguyen Van Troi, Phu Nhuan, TP.HCM', N'0938000038', N'nhahang38', N'Đang mở cửa', N'bbq_hanquoc.jpg', NULL, 10.795405, 106.675991),
+(N'NH039', N'Ga Nuong Lu', N'11 Phan Dang Luu, Phu Nhuan, TP.HCM', N'0939000039', N'nhahang39', N'Đang mở cửa', N'ga_nuong_lu.jpg', NULL, 10.781971, 106.693081),
+(N'NH040', N'Oc Quan Hanh', N'65 Le Van Sy, Quan 3, TP.HCM', N'0940000040', N'nhahang40', N'Đang mở cửa', N'oc_quanhannh.jpg', NULL, 10.786222, 106.680885),
+(N'NH041', N'Lau Ca Keo 123', N'29 Nguyen Van Lac, Binh Thanh, TP.HCM', N'0941000041', N'nhahang41', N'Đang mở cửa', N'lau_ca_keo.jpg', NULL, 10.781971, 106.693081),
+(N'NH042', N'Banh Mi PewPew', N'66 Nguyen Trai, Quan 5, TP.HCM', N'0942000042', N'nhahang42', N'Đang mở cửa', N'banh_mi_pewpew.jpg', NULL, 10.844517, 106.774799),
+(N'NH043', N'Banh Canh Trang Bang', N'98 Ly Chinh Thang, Quan 3, TP.HCM', N'0943000043', N'nhahang43', N'Đang mở cửa', N'banh_canh_trang_bang.jpg', NULL, 10.790834, 106.686868),
+(N'NH044', N'Nhat Sakura', N'123 Pasteur, Quan 1, TP.HCM', N'0944000044', N'nhahang44', N'Đang mở cửa', N'nhat_sakura.jpg', NULL, 10.777693, 106.69897),
+(N'NH045', N'Lau De Tu Suu', N'54 Nguyen Tri Phuong, Quan 10, TP.HCM', N'0945000045', N'nhahang45', N'Đang mở cửa', N'lau_de_tusuu.jpg', NULL, 10.751624, 106.669488),
+(N'NH046', N'Com Nieu Huong Viet', N'11 Nguyen Thi Minh Khai, Quan 1, TP.HCM', N'0946000046', N'nhahang46', N'Đang mở cửa', N'com_nieu_huong_viet.jpg', NULL, 10.786347, 106.701603),
+(N'NH047', N'Gogi House Landmark81', N'Landmark 81, Binh Thanh, TP.HCM', N'0947000047', N'nhahang47', N'Đang mở cửa', N'gogi_house.jpg', NULL, 21.164731, 106.059825),
+(N'NH048', N'Highland coffee Vạn Hạnh Mall', N'11 Sư Vạn Hạnh, P.1, Quận 10, TP. HCM', N'09090909', N'nhahang48', N'Đang mở cửa', N'download_639002237576804016.png', NULL, 10.781971, 106.693081),
+(N'NH049', N'Lau Bo Sai Gon', N'44 Nguyen Van Cu, Quan 5, TP.HCM', N'0949000049', N'nhahang49', N'Đang mở cửa', N'lau_bo_saigon.jpg', NULL, 10.763911, 106.682172),
+(N'NH050', N'Pho 24 Nguyen Hue', N'12 Nguyen Hue, Quan 1, TP.HCM', N'0950000050', N'nhahang50', N'Đang mở cửa', N'pho_24.jpg', NULL, 10.776063, 106.701775),
+(N'NH051', N'SKT T1 TELECOM', N'18A1 Cộng Hòa, Phường 04, Quận Tân Bình, Thành phố Hồ Chí Minh', N'0123456789', N'TK012', N'Đang mở cửa', N'STKT1_639003118359129834.jpg', NULL, 10.797866, 106.687424);
+GO
+
+-- Insert Món Ăn
+INSERT INTO MonAn (MaMon, MaNH, TenMon, MaLoai, Gia, MoTa, HinhAnh, TrangThai) VALUES 
+(N'MA001', N'NH001', N'Cơm Tấm Sườn Bì Chả', N'Com', 65000.00, N'Cơm tấm đặc trưng, sườn nướng, bì sợi, chả trứng.', N'com.png', 1),
+(N'MA002', N'NH001', N'Cơm Tấm Sườn Trứng', N'Com', 55000.00, N'Cơm tấm với sườn nướng và trứng ốp la.', N'com.png', 1),
+(N'MA003', N'NH001', N'Canh Rong Biển', N'AnVat', 20000.00, N'Canh rong biển tươi nấu cùng thịt băm.', N'an_vat.png', 1),
+(N'MA004', N'NH002', N'Phở Tái Nạm', N'Pho', 75000.00, N'Phở bò với thịt tái và nạm bò chín.', N'pho.png', 1),
+(N'MA005', N'NH002', N'Phở Gầu', N'Pho', 80000.00, N'Phở bò với gầu bò giòn sần sật.', N'pho.png', 1),
+(N'MA006', N'NH002', N'Phở Thập Cẩm', N'Pho', 85000.00, N'Phở có đủ loại thịt: tái, nạm, gầu, gân.', N'pho.png', 1),
+(N'MA007', N'NH003', N'Bún Chả Đầy Đủ', N'Bun', 70000.00, N'Bún chả nem và thịt nướng, suất lớn.', N'bun.png', 1),
+(N'MA008', N'NH003', N'Nem Cua Bể', N'AnVat', 50000.00, N'Nem cua bể chiên giòn, nhân đầy đặn.', N'an_vat.png', 1),
+(N'MA009', N'NH003', N'Bún Chả Lá Lốt', N'Bun', 65000.00, N'Thịt heo nướng gói lá lốt thơm lừng.', N'bun.png', 1),
+(N'MA010', N'NH004', N'Pizza 4 Cheese', N'Pizza', 250000.00, N'Pizza với 4 loại phô mai đặc trưng.', N'pizza.png', 1),
+(N'MA011', N'NH004', N'Pizza Hải Sản', N'Pizza', 280000.00, N'Pizza với tôm, mực, nghêu tươi ngon.', N'pizza.png', 1),
+(N'MA012', N'NH004', N'Salad Caesar', N'AnVat', 90000.00, N'Salad rau xanh, thịt gà, sốt Caesar.', N'an_vat.png', 1),
+(N'MA013', N'NH005', N'Lẩu Thái TomYum', N'Lau', 290000.00, N'Nước lẩu chua cay chuẩn Thái, hải sản tươi.', N'lau.png', 1),
+(N'MA014', N'NH005', N'Gỏi Xoài Hải Sản', N'Haisan', 120000.00, N'Gỏi xoài xanh trộn tôm mực, chua ngọt.', N'haisan.png', 1),
+(N'MA015', N'NH005', N'Mì Xào Thái', N'Mi', 85000.00, N'Mì xào kiểu Thái với rau củ và thịt.', N'mi.png', 1),
+(N'MA016', N'NH006', N'Sushi Set Đặc Biệt', N'Sushi', 350000.00, N'Combo sushi đa dạng loại: nigiri, maki, sashimi.', N'sushi.png', 1),
+(N'MA017', N'NH006', N'Sashimi Cá Hồi', N'Sushi', 190000.00, N'Lát cá hồi tươi sống, mềm béo.', N'sushi.png', 1),
+(N'MA018', N'NH006', N'Tempura Tôm', N'AnVat', 95000.00, N'Tôm chiên bột giòn tan kiểu Nhật.', N'an_vat.png', 1),
+(N'MA019', N'NH007', N'Bánh Canh Cua', N'Mi', 70000.00, N'Bánh canh cua đậm đà, thịt cua tươi.', N'mi.png', 1),
+(N'MA020', N'NH007', N'Chả Cua', N'Haisan', 35000.00, N'Chả cua hấp thơm ngon, dai giòn.', N'haisan.png', 1),
+(N'MA021', N'NH007', N'Nước Cam Tươi', N'AnVat', 30000.00, N'Nước cam vắt tươi nguyên chất.', N'an_vat.png', 1),
+(N'MA022', N'NH008', N'Cơm Niêu Cá Lóc Kho Tộ', N'Com', 130000.00, N'Cá lóc kho tộ với cơm niêu cháy giòn.', N'com.png', 1),
+(N'MA023', N'NH008', N'Canh Chua Cá Lóc', N'Com', 90000.00, N'Canh chua nấu theo kiểu miền Nam.', N'com.png', 1),
+(N'MA024', N'NH008', N'Rau Muống Xào Tỏi', N'Com', 45000.00, N'Rau muống xanh xào tỏi thơm lừng.', N'com.png', 1),
+(N'MA025', N'NH009', N'Lẩu Bò Nhúng Ớt', N'Lau', 280000.00, N'Lẩu bò cay xé lưỡi, nước dùng đậm đà.', N'lau.png', 1),
+(N'MA026', N'NH009', N'Ba Chỉ Bò Nướng', N'AnVat', 150000.00, N'Ba chỉ bò nướng mềm, ăn kèm sốt đặc biệt.', N'an_vat.png', 1),
+(N'MA027', N'NH009', N'Coca Cola Lon', N'AnVat', 20000.00, N'Nước ngọt có ga giải khát.', N'an_vat.png', 1),
+(N'MA028', N'NH010', N'Gà Rán Miếng', N'AnVat', 35000.00, N'Miếng gà rán giòn tan.', N'an_vat.png', 1),
+(N'MA029', N'NH010', N'Khoai Tây Chiên', N'AnVat', 40000.00, N'Khoai tây chiên giòn, rắc phô mai.', N'an_vat.png', 1),
+(N'MA030', N'NH010', N'Combo Gà & Khoai', N'AnVat', 70000.00, N'2 miếng gà rán, 1 phần khoai tây chiên.', N'an_vat.png', 1),
+(N'MA031', N'NH011', N'Phin Sữa Đá', N'Pho', 39000.00, N'Cà phê phin truyền thống với sữa đặc.', N'pho.png', 1),
+(N'MA032', N'NH011', N'Trà Sen Vàng', N'Trasua', 45000.00, N'Trà sen kết hợp hạt sen và củ năng.', N'trasua.png', 1),
+(N'MA033', N'NH011', N'Bánh Mì Kẹp Thịt', N'AnVat', 49000.00, N'Bánh mì kẹp thịt xông khói và rau tươi.', N'an_vat.png', 1),
+(N'MA034', N'NH012', N'Mì Cay Hải Sản Cấp 7', N'Mi', 89000.00, N'Mì cay với đủ loại hải sản, cấp độ cay cao nhất.', N'mi.png', 1),
+(N'MA035', N'NH012', N'Mì Cay Bò', N'Mi', 75000.00, N'Mì cay với thịt bò lát mỏng.', N'mi.png', 1),
+(N'MA036', N'NH012', N'Kim Chi', N'AnVat', 30000.00, N'Kim chi cải thảo truyền thống.', N'an_vat.png', 1),
+(N'MA037', N'NH013', N'Lẩu Bò Ba Toa', N'Lau', 350000.00, N'Lẩu bò đặc trưng với bắp, gân, đuôi bò.', N'lau.png', 1),
+(N'MA038', N'NH013', N'Bò Bóp Thấu', N'AnVat', 140000.00, N'Bò tái trộn gia vị, ăn kèm bánh đa.', N'an_vat.png', 1),
+(N'MA039', N'NH013', N'Mì Trứng', N'Mi', 20000.00, N'Phần mì trứng ăn kèm lẩu.', N'mi.png', 1),
+(N'MA040', N'NH014', N'Cơm Gà Xối Mỡ Đùi', N'Com', 55000.00, N'Cơm gà chiên giòn, phần đùi gà to.', N'com.png', 1),
+(N'MA041', N'NH014', N'Cơm Gà Xối Mỡ Xé', N'Com', 50000.00, N'Cơm gà chiên giòn, gà xé phay trộn gỏi.', N'com.png', 1),
+(N'MA042', N'NH014', N'Trà Đá', N'AnVat', 5000.00, N'Nước trà đá giải khát.', N'an_vat.png', 1),
+(N'MA043', N'NH015', N'Ốc Hương Xào Bơ Tỏi', N'Haisan', 150000.00, N'Ốc hương tươi, xào bơ tỏi thơm lừng.', N'haisan.png', 1),
+(N'MA044', N'NH015', N'Sò Điệp Nướng Mỡ Hành', N'Haisan', 120000.00, N'Sò điệp lớn nướng than, mỡ hành béo ngậy.', N'haisan.png', 1),
+(N'MA045', N'NH015', N'Rau Muống Luộc', N'Com', 30000.00, N'Rau muống luộc chấm chao.', N'com.png', 1),
+(N'MA046', N'NH016', N'Buffet Lẩu', N'Lau', 299000.00, N'Thưởng thức buffet lẩu không giới hạn.', N'lau.png', 1),
+(N'MA047', N'NH016', N'Nước Lẩu Thái', N'Lau', 0.00, N'Nước lẩu Thái chua cay (đã bao gồm trong buffet).', N'lau.png', 1),
+(N'MA048', N'NH016', N'Đĩa Thịt Bò Mỹ', N'Lau', 0.00, N'Thịt bò Mỹ tươi ngon (đã bao gồm trong buffet).', N'lau.png', 1),
+(N'MA049', N'NH017', N'Bánh Mì Thập Cẩm Đặc Biệt', N'AnVat', 65000.00, N'Bánh mì đầy đủ patê, chả lụa, thịt nguội.', N'an_vat.png', 1),
+(N'MA050', N'NH017', N'Bánh Mì Chả Lụa', N'AnVat', 45000.00, N'Bánh mì với chả lụa và rau dưa.', N'an_vat.png', 1),
+(N'MA051', N'NH017', N'Bánh Mì Patê', N'AnVat', 40000.00, N'Bánh mì chỉ có patê và rau.', N'an_vat.png', 1),
+(N'MA052', N'NH018', N'Cơm Chay Lá Sen', N'Chay', 70000.00, N'Cơm gói lá sen, ăn kèm các món chay.', N'chay.png', 1),
+(N'MA053', N'NH018', N'Phở Chay', N'Chay', 60000.00, N'Phở nước dùng nấm và rau củ.', N'chay.png', 1),
+(N'MA054', N'NH018', N'Gỏi Cuốn Chay', N'Chay', 45000.00, N'Gỏi cuốn rau củ, đậu hũ, chấm sốt đậu phộng.', N'chay.png', 1),
+(N'MA055', N'NH019', N'Hủ Tiếu Nam Vang Khô', N'Mi', 60000.00, N'Hủ tiếu Nam Vang trộn, nước súp riêng.', N'mi.png', 1),
+(N'MA056', N'NH019', N'Hủ Tiếu Nam Vang Nước', N'Mi', 60000.00, N'Hủ tiếu Nam Vang nước dùng đậm đà.', N'mi.png', 1),
+(N'MA057', N'NH019', N'Nước Sâm Lạnh', N'AnVat', 25000.00, N'Nước sâm mát lạnh giải nhiệt.', N'an_vat.png', 1),
+(N'MA058', N'NH020', N'Cơm Chiên Nấm Tràm', N'Chay', 75000.00, N'Cơm chiên với nấm tràm đặc sản.', N'chay.png', 1),
+(N'MA059', N'NH020', N'Lẩu Nấm Chay', N'Chay', 250000.00, N'Lẩu nấm đủ loại, nước dùng thanh.', N'chay.png', 1),
+(N'MA060', N'NH020', N'Nước Ép Ổi', N'AnVat', 35000.00, N'Nước ép ổi tươi nguyên chất.', N'an_vat.png', 1),
+(N'MA061', N'NH021', N'Bún Đậu Mẹt Đầy Đủ', N'Bun', 99000.00, N'Đậu, bún, chả cốm, nem chua, thịt luộc.', N'bun.png', 1),
+(N'MA062', N'NH021', N'Chả Cốm', N'AnVat', 40000.00, N'Chả cốm chiên giòn, thơm mùi cốm.', N'an_vat.png', 1),
+(N'MA063', N'NH021', N'Bún Lá', N'Bun', 10000.00, N'Phần bún thêm.', N'bun.png', 1),
+(N'MA064', N'NH022', N'Pizza Aloha', N'Pizza', 189000.00, N'Pizza với thịt nguội và dứa.', N'pizza.png', 1),
+(N'MA065', N'NH022', N'Pizza Hawaiian', N'Pizza', 199000.00, N'Pizza nhân hải sản kiểu Hawaii.', N'pizza.png', 1),
+(N'MA066', N'NH022', N'Gà Nướng Tỏi', N'AnVat', 89000.00, N'Đùi gà nướng sốt tỏi mật ong.', N'an_vat.png', 1),
+(N'MA067', N'NH023', N'Bún Chả Nem Rán', N'Bun', 65000.00, N'Bún chả với nem rán giòn tan.', N'bun.png', 1),
+(N'MA068', N'NH023', N'Bún Chả Suất Lẻ', N'Bun', 55000.00, N'Phần bún chả nhỏ hơn.', N'bun.png', 1),
+(N'MA069', N'NH023', N'Nước Mắm Chua Ngọt', N'AnVat', 5000.00, N'Chén nước mắm pha đặc biệt.', N'an_vat.png', 1),
+(N'MA070', N'NH024', N'Lẩu Nấm Thiên Nhiên', N'Lau', 399000.00, N'Lẩu nấm quý hiếm, nước dùng bổ dưỡng.', N'lau.png', 1),
+(N'MA071', N'NH024', N'Đĩa Nấm Tổng Hợp', N'Lau', 150000.00, N'Đĩa nấm tươi theo mùa.', N'lau.png', 1),
+(N'MA072', N'NH024', N'Trà Thảo Mộc', N'AnVat', 45000.00, N'Trà thảo mộc thanh lọc cơ thể.', N'an_vat.png', 1),
+(N'MA073', N'NH025', N'Gà Ủ Muối Nửa Con', N'AnVat', 150000.00, N'Nửa con gà ủ muối hoa tiêu.', N'an_vat.png', 1),
+(N'MA074', N'NH025', N'Gà Ủ Muối Nguyên Con', N'AnVat', 280000.00, N'Gà ủ muối nguyên con, thích hợp cho nhóm.', N'an_vat.png', 1),
+(N'MA075', N'NH025', N'Xôi Chiên Phồng', N'AnVat', 45000.00, N'Xôi chiên giòn, ăn kèm gà.', N'an_vat.png', 1),
+(N'MA076', N'NH026', N'Cơm Niêu Thập Cẩm', N'Com', 140000.00, N'Cơm niêu với nhiều loại topping và món ăn kèm.', N'com.png', 1),
+(N'MA077', N'NH026', N'Canh Sườn', N'Com', 80000.00, N'Canh sườn hầm rau củ.', N'com.png', 1),
+(N'MA078', N'NH026', N'Cải Thìa Xào Nấm', N'Com', 60000.00, N'Cải thìa tươi xào nấm hương.', N'com.png', 1),
+(N'MA079', N'NH027', N'Lẩu Mala', N'Lau', 290000.00, N'Lẩu cay Tứ Xuyên, nước dùng tê cay.', N'lau.png', 1),
+(N'MA080', N'NH027', N'Sườn Bò Mỹ Nướng', N'AnVat', 180000.00, N'Sườn bò Mỹ nướng mềm, béo.', N'an_vat.png', 1),
+(N'MA081', N'NH027', N'Bạch Tuộc Nướng', N'Haisan', 150000.00, N'Bạch tuộc tươi nướng than hồng.', N'haisan.png', 1),
+(N'MA082', N'NH028', N'Phở Tái Lăn', N'Pho', 75000.00, N'Phở tái lăn đặc trưng, thịt bò xào tái.', N'pho.png', 1),
+(N'MA083', N'NH028', N'Phở Chín', N'Pho', 70000.00, N'Phở với thịt bò chín.', N'pho.png', 1),
+(N'MA084', N'NH028', N'Quẩy', N'AnVat', 10000.00, N'Quẩy giòn ăn kèm phở.', N'an_vat.png', 1),
+(N'MA085', N'NH029', N'Bánh Xèo Tôm Thịt', N'AnVat', 50000.00, N'Bánh xèo miền Tây nhân tôm thịt, to và giòn.', N'an_vat.png', 1),
+(N'MA086', N'NH029', N'Bánh Khọt', N'AnVat', 60000.00, N'Bánh khọt Vũng Tàu, ăn kèm rau sống.', N'an_vat.png', 1),
+(N'MA087', N'NH029', N'Gỏi Cuốn Tôm Thịt', N'AnVat', 40000.00, N'Gỏi cuốn với bún, tôm, thịt, chấm tương đen.', N'an_vat.png', 1),
+(N'MA088', N'NH030', N'Bún Riêu Cua Đồng', N'Bun', 65000.00, N'Bún riêu cua với gạch cua béo ngậy.', N'bun.png', 1),
+(N'MA089', N'NH030', N'Bún Riêu Ốc', N'Bun', 70000.00, N'Bún riêu nấu cùng ốc bươu.', N'bun.png', 1),
+(N'MA090', N'NH030', N'Ốc Luộc', N'Haisan', 50000.00, N'Ốc luộc chấm mắm gừng.', N'haisan.png', 1),
+(N'MA091', N'NH031', N'Steak Bò Mỹ', N'Steak', 299000.00, N'Thịt bò Mỹ nướng, ăn kèm khoai tây và rau củ.', N'steak.png', 1),
+(N'MA092', N'NH031', N'Súp Bí Đỏ', N'AnVat', 65000.00, N'Súp bí đỏ kem tươi béo ngậy.', N'an_vat.png', 1),
+(N'MA093', N'NH031', N'Salad Caesar', N'AnVat', 90000.00, N'Salad rau xanh, gà nướng, sốt Caesar.', N'an_vat.png', 1),
+(N'MA094', N'NH032', N'Cơm Gà Luộc', N'Com', 60000.00, N'Cơm gà luộc truyền thống, ăn kèm gỏi.', N'com.png', 1),
+(N'MA095', N'NH032', N'Cơm Gà Quay', N'Com', 65000.00, N'Cơm gà quay giòn da.', N'com.png', 1),
+(N'MA096', N'NH032', N'Gỏi Gà', N'AnVat', 80000.00, N'Gỏi gà trộn hành tây, rau răm.', N'an_vat.png', 1),
+(N'MA097', N'NH033', N'Nigiri Set', N'Sushi', 220000.00, N'Combo Nigiri các loại cá và tôm.', N'sushi.png', 1),
+(N'MA098', N'NH033', N'Temaki Cá Hồi', N'Sushi', 85000.00, N'Sushi cuốn tay cá hồi và bơ.', N'sushi.png', 1),
+(N'MA099', N'NH033', N'Súp Miso', N'AnVat', 40000.00, N'Súp Miso truyền thống.', N'an_vat.png', 1),
+(N'MA100', N'NH034', N'Bún Mắm Đặc Biệt', N'Bun', 80000.00, N'Bún mắm với tôm, mực, heo quay.', N'bun.png', 1),
+(N'MA101', N'NH034', N'Chả Cá', N'AnVat', 30000.00, N'Chả cá chiên ăn kèm.', N'an_vat.png', 1),
+(N'MA102', N'NH034', N'Rau Sống Thêm', N'Bun', 15000.00, N'Phần rau sống thêm.', N'bun.png', 1),
+(N'MA103', N'NH035', N'Lẩu Cua Đồng', N'Lau', 280000.00, N'Lẩu riêu cua đồng, gạch cua béo ngậy.', N'lau.png', 1),
+(N'MA104', N'NH035', N'Chả Cá Thác Lác', N'Lau', 110000.00, N'Chả cá thác lác viên dai.', N'lau.png', 1),
+(N'MA105', N'NH035', N'Bún Tươi Ăn Lẩu', N'Bun', 15000.00, N'Phần bún ăn lẩu.', N'bun.png', 1),
+(N'MA106', N'NH036', N'Cơm Trắng', N'Com', 15000.00, N'Cơm trắng dẻo thơm.', N'com.png', 1),
+(N'MA107', N'NH036', N'Cá Rô Đồng Kho Tộ', N'Com', 110000.00, N'Cá rô đồng kho tộ đậm đà.', N'com.png', 1),
+(N'MA108', N'NH036', N'Canh Mồng Tơi', N'Com', 40000.00, N'Canh mồng tơi nấu tôm.', N'com.png', 1),
+(N'MA109', N'NH037', N'Bánh Ướt Thịt Nướng', N'AnVat', 55000.00, N'Bánh ướt cuốn thịt nướng Ban Mê.', N'an_vat.png', 1),
+(N'MA110', N'NH037', N'Chả Lụa', N'AnVat', 30000.00, N'Phần chả lụa ăn kèm.', N'an_vat.png', 1),
+(N'MA111', N'NH037', N'Nem Chua', N'AnVat', 25000.00, N'Nem chua Thanh Hóa.', N'an_vat.png', 1),
+(N'MA112', N'NH038', N'Thịt Heo Nướng Sốt Cay', N'AnVat', 160000.00, N'Ba chỉ heo nướng sốt cay Hàn Quốc.', N'an_vat.png', 1),
+(N'MA113', N'NH038', N'Canh Kim Chi', N'AnVat', 70000.00, N'Canh Kim chi thịt heo nóng hổi.', N'an_vat.png', 1),
+(N'MA114', N'NH038', N'Bia Hàn', N'AnVat', 45000.00, N'Chai bia Hàn Quốc.', N'an_vat.png', 1),
+(N'MA115', N'NH039', N'Gà Nướng Lu Mật Ong', N'AnVat', 290000.00, N'Gà ta nướng lu nguyên con, da giòn.', N'an_vat.png', 1),
+(N'MA116', N'NH039', N'Chân Gà Sả Ớt', N'AnVat', 85000.00, N'Chân gà rút xương ngâm sả ớt.', N'an_vat.png', 1),
+(N'MA117', N'NH039', N'Xôi Gà', N'Com', 55000.00, N'Xôi chiên ăn kèm thịt gà.', N'com.png', 1),
+(N'MA118', N'NH040', N'Ốc Mỡ Xào Me', N'Haisan', 100000.00, N'Ốc mỡ tươi xào sốt me chua ngọt.', N'haisan.png', 1),
+(N'MA119', N'NH040', N'Càng Ghẹ Rang Muối', N'Haisan', 180000.00, N'Càng ghẹ rang muối ớt đậm đà.', N'haisan.png', 1),
+(N'MA120', N'NH040', N'Răng Mực Nướng', N'Haisan', 90000.00, N'Răng mực nướng sa tế.', N'haisan.png', 1),
+(N'MA121', N'NH041', N'Lẩu Cá Kèo Lá Giang', N'Lau', 260000.00, N'Lẩu cá kèo miền Tây, nước dùng chua lá giang.', N'lau.png', 1),
+(N'MA122', N'NH041', N'Cá Kèo Kho Tộ', N'Com', 110000.00, N'Cá kèo kho tộ ăn kèm cơm.', N'com.png', 1),
+(N'MA123', N'NH041', N'Rau Lẩu Thêm', N'Lau', 25000.00, N'Phần rau ăn lẩu.', N'lau.png', 1),
+(N'MA124', N'NH042', N'Bánh Mì Gà Xé', N'AnVat', 35000.00, N'Bánh mì nóng giòn kẹp gà xé phay.', N'an_vat.png', 1),
+(N'MA125', N'NH042', N'Bánh Mì Trứng Ốp La', N'AnVat', 30000.00, N'Bánh mì kẹp trứng ốp la.', N'an_vat.png', 1),
+(N'MA126', N'NH042', N'Nước Suối', N'AnVat', 10000.00, N'Chai nước suối Dasani.', N'an_vat.png', 1),
+(N'MA127', N'NH043', N'Bánh Canh Trảng Bàng', N'Mi', 65000.00, N'Bánh canh Trảng Bàng thịt heo luộc.', N'mi.png', 1),
+(N'MA128', N'NH043', N'Thịt Heo Luộc Cuốn', N'AnVat', 90000.00, N'Thịt heo luộc, bánh tráng, rau rừng.', N'an_vat.png', 1),
+(N'MA129', N'NH043', N'Rau Rừng Đặc Trưng', N'AnVat', 25000.00, N'Đĩa rau rừng ăn kèm.', N'an_vat.png', 1),
+(N'MA130', N'NH044', N'Combo Sushi & Sashimi', N'Sushi', 380000.00, N'Set kết hợp nhiều loại sushi và sashimi.', N'sushi.png', 1),
+(N'MA131', N'NH044', N'Mì Udon', N'Mi', 120000.00, N'Mì Udon nước dùng dashi.', N'mi.png', 1),
+(N'MA132', N'NH044', N'Trà Xanh Đá', N'AnVat', 35000.00, N'Trà xanh đá kiểu Nhật.', N'an_vat.png', 1),
+(N'MA133', N'NH045', N'Lẩu Dê Tiềm Thuốc Bắc', N'Lau', 350000.00, N'Lẩu dê hầm thuốc bắc, bổ dưỡng.', N'lau.png', 1),
+(N'MA134', N'NH045', N'Dê Xào Lăn', N'AnVat', 150000.00, N'Thịt dê xào lăn thơm mùi sả.', N'an_vat.png', 1),
+(N'MA135', N'NH045', N'Tiết Canh Dê', N'AnVat', 70000.00, N'Tiết canh dê tươi (tùy thời điểm).', N'an_vat.png', 1),
+(N'MA136', N'NH046', N'Cơm Niêu Cá Bống Kho Tiêu', N'Com', 120000.00, N'Cá bống kho tiêu cay nhẹ.', N'com.png', 1),
+(N'MA137', N'NH046', N'Canh Riêu Cua', N'Com', 80000.00, N'Canh riêu cua đồng.', N'com.png', 1),
+(N'MA138', N'NH046', N'Rau Luộc Thập Cẩm', N'Com', 50000.00, N'Rau củ luộc chấm mắm kho.', N'com.png', 1),
+(N'MA139', N'NH047', N'Ba Chỉ Heo Nướng Sốt', N'AnVat', 140000.00, N'Ba chỉ heo tẩm ướp nướng.', N'an_vat.png', 1),
+(N'MA140', N'NH047', N'Thịt Bò Thăn Nướng', N'AnVat', 190000.00, N'Thịt bò thăn nướng.', N'an_vat.png', 1),
+(N'MA141', N'NH047', N'Kim Chi Cải Thảo', N'AnVat', 40000.00, N'Kim chi cải thảo truyền thống.', N'an_vat.png', 1),
+(N'MA142', N'NH048', N'Freeze Trà Xanh', N'AnVat', 59000.00, N'Đồ uống đá xay vị trà xanh.', N'an_vat.png', 1),
+(N'MA143', N'NH048', N'Cà Phê Đen Đá', N'Pho', 29000.00, N'Cà phê đen đá đậm vị.', N'pho.png', 1),
+(N'MA144', N'NH048', N'Bánh Phô Mai Trà Xanh', N'AnVat', 45000.00, N'Bánh phô mai mềm mịn.', N'an_vat.png', 1),
+(N'MA145', N'NH049', N'Lẩu Thập Cẩm', N'Lau', 300000.00, N'Lẩu bò đầy đủ các loại thịt và rau.', N'lau.png', 1),
+(N'MA146', N'NH049', N'Nước Lẩu Sa Tế', N'Lau', 0.00, N'Nước lẩu sa tế cay nhẹ (phí đã tính trong lẩu).', N'lau.png', 1),
+(N'MA147', N'NH049', N'Bắp Bò Tươi', N'Lau', 130000.00, N'Phần bắp bò tươi nhúng lẩu.', N'lau.png', 1),
+(N'MA148', N'NH050', N'Phở Bò Viên', N'Pho', 65000.00, N'Phở với bò viên.', N'pho.png', 1),
+(N'MA149', N'NH050', N'Phở Gà', N'Pho', 60000.00, N'Phở gà xé, nước dùng thanh.', N'pho.png', 1),
+(N'MA150', N'NH050', N'Nước Chanh Tươi', N'AnVat', 20000.00, N'Nước chanh tươi giải khát.', N'an_vat.png', 1),
+(N'MA151', N'NH001', N'Cơm gà xối mỡ', N'Com', 70000.00, N'Ngon bổ rẻ', N'com_638998821685812591.jpg', 1);
+GO
+
+-- Insert Đơn Hàng
+INSERT INTO DonHang (MaDon, MaKH, MaNH, MaShipper, TrangThai, TongTien, ThoiGianDat, DiaChiGiaoHang, SDTGiaoHang, Latitude, Longitude, ShipperLatitude, ShipperLongitude, ShipFee) VALUES 
+(N'DH00001', N'KH001', N'NH029', N'SP001', N'Hoàn thành', 50000.00, '2025-11-19T14:24:23.113', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', NULL, NULL, NULL, NULL, NULL),
+(N'DH00002', N'KH001', N'NH029', N'SP001', N'Hoàn thành', 150000.00, '2025-11-19T18:03:01.887', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', NULL, NULL, NULL, NULL, NULL),
+(N'DH00003', N'KH001', N'NH029', N'SP001', N'Hoàn thành', 175000.00, '2025-11-27T12:44:49.883', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, NULL, NULL, 15000.00),
+(N'DH00004', N'KH001', N'NH004', N'SP001', N'Hoàn thành', 635000.00, '2025-11-27T14:02:18.710', N'17 Dao Duy Tu P5 Q10', N'09082001', 21.732568, 105.396672, 10.8016358, 106.7105731, 15000.00),
+(N'DH00005', N'KH001', N'NH029', N'SP001', N'Hoàn thành', 65000.00, '2025-11-27T14:16:13.227', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.8016358, 106.7105731, 15000.00),
+(N'DH00006', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 80000.00, '2025-11-27T14:54:36.917', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, NULL, NULL, 15000.00),
+(N'DH00007', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 80000.00, '2025-11-27T15:11:12.280', N'17 Dao Duy Tu P5 Q10 TPHCM', N'09082001', 10.781971, 106.693081, 10.8016438, 106.7105782, 15000.00),
+(N'DH00008', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 170000.00, '2025-11-29T14:31:04.423', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.7606718, 106.6681109, 15000.00),
+(N'DH00009', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 35000.00, '2025-11-29T14:31:15.983', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.7606718, 106.6681109, 15000.00),
+(N'DH00010', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 85000.00, '2025-11-29T14:52:48.020', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.760597, 106.6681317, 15000.00),
+(N'DH00011', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 360000.00, '2025-11-29T18:13:42.857', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.7606299, 106.6680602, 15000.00),
+(N'DH00012', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 89199.00, '2025-11-29T21:47:46.140', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.7606848, 106.6681013, 19199.00),
+(N'DH00013', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 84199.00, '2025-11-29T22:11:38.110', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.7606771, 106.6680848, 19199.00),
+(N'DH00014', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 229199.00, '2025-11-29T22:42:59.987', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.7606946, 106.6681149, 19199.00),
+(N'DH00015', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 89199.00, '2025-11-29T23:01:16.173', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.7606816, 106.6681111, 19199.00),
+(N'DH00016', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 229199.00, '2025-11-29T23:10:04.517', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.7606512, 106.6680801, 19199.00),
+(N'DH00017', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 586000.00, '2025-11-30T00:52:19.460', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, NULL, NULL, 31000.00),
+(N'DH00018', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 801000.00, '2025-11-30T01:45:51.127', N'11 Duong Test, Quan 1, TP.HCM', N'09082001', 10.781971, 106.693081, 10.7606275, 106.6681233, 31000.00),
+(N'DH00019', N'KH012', N'NH001', N'SP001', N'Hoàn thành', 108500.00, '2025-11-30T14:16:49.700', N'17 Dao Duy Tu Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'111111', 10.771075, 106.660431, 10.7606996, 106.6681115, 38500.00),
+(N'DH00020', N'KH013', N'NH001', N'SP001', N'Hoàn thành', 1089400.00, '2025-11-30T14:43:13.653', N'475A Điện Biên Phủ, Phường 25, Quận Bình Thạnh, Thành phố Hồ Chí Minh', N'0938180475', 10.80209, 106.7147, 10.7606739, 106.6681047, 39400.00),
+(N'DH00021', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 245000.00, '2025-11-30T23:39:24.457', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, 10.8007697, 106.654876, 35000.00),
+(N'DH00022', N'KH016', N'NH001', N'SP001', N'Hoàn thành', 272700.00, '2025-12-01T14:09:31.160', N'99C cộng hòa, Phường 04, Quận Tân Bình, Thành phố Hồ Chí Minh', N'34242', 10.801673, 106.649761, 10.8007697, 106.654876, 42700.00),
+(N'DH00023', N'KH016', N'NH001', N'SP001', N'Hoàn thành', 245000.00, '2025-12-01T19:06:27.470', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'34242', 10.793679, 106.683445, 10.7606321, 106.6681037, 35000.00),
+(N'DH00024', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 55000.00, '2025-12-01T20:16:45.730', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, 10.7606664, 106.668096, 35000.00),
+(N'DH00025', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 125000.00, '2025-12-01T21:52:48.633', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, 10.7606795, 106.6681011, 35000.00),
+(N'DH00026', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 105000.00, '2025-12-01T21:57:41.857', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, NULL, NULL, 35000.00),
+(N'DH00027', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 105000.00, '2025-12-01T22:17:17.680', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, NULL, NULL, 35000.00),
+(N'DH00028', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 105000.00, '2025-12-01T22:27:30.927', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, 10.7606714, 106.6681099, 35000.00),
+(N'DH00029', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 245000.00, '2025-12-01T22:50:42.393', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, NULL, NULL, 35000.00),
+(N'DH00030', N'KH019', N'NH001', N'SP022', N'Hoàn thành', 252700.00, '2025-12-02T12:46:18.947', N'99C Cộng Hòa, Phường 04, Quận Tân Bình, Thành phố Hồ Chí Minh', N'1234567890', 10.801673, 106.649761, 10.8007712, 106.6548894, 42700.00),
+(N'DH00031', N'KH019', N'NH001', N'SP022', N'Hoàn thành', 59400.00, '2025-12-02T12:51:51.980', N'475A Điện Biên Phủ, Phường 25, Quận Bình Thạnh, Thành phố Hồ Chí Minh', N'1234567890', 10.80209, 106.7147, 10.8007712, 106.6548894, 39400.00),
+(N'DH00032', N'KH019', N'NH001', N'SP001', N'Hoàn thành', 97700.00, '2025-12-02T13:12:39.317', N'99C Cộng Hòa, Phường 04, Quận Tân Bình, Thành phố Hồ Chí Minh', N'1234567890', 10.801673, 106.649761, 10.8007782, 106.6548746, 42700.00),
+(N'DH00033', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 176000.00, '2025-12-02T16:35:53.637', N'17 Đào Duy Từ, Phường 06, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, 10.8007782, 106.6548746, 31000.00),
+(N'DH00034', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 106000.00, '2025-12-02T17:32:42.770', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, NULL, NULL, 31000.00),
+(N'DH00035', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 220000.00, '2025-12-02T20:19:31.997', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, 10.760697, 106.6681012, 35000.00),
+(N'DH00036', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 195000.00, '2025-12-02T22:04:43.413', N'17 Đào Duy Từ, Phường 05, Quận 10, Thành phố Hồ Chí Minh', N'09082001', 10.793679, 106.683445, 10.760697, 106.6681012, 35000.00),
+(N'DH00037', N'KH001', N'NH001', N'SP001', N'Hoàn thành', 179400.00, '2025-12-04T15:05:00.437', N'475A Điện Biên Phủ, Phường 25, Quận Bình Thạnh, Thành phố Hồ Chí Minh', N'0909090909', 10.80209, 106.7147, 10.8017505, 106.7106249, 39400.00);
+GO
+
+-- Insert Chi Tiết Đơn Hàng (Sử dụng IDENTITY_INSERT vì bảng này có PK IDENTITY)
+SET IDENTITY_INSERT [dbo].[ChiTietDonHang] ON;
+INSERT [dbo].[ChiTietDonHang] ([MaChiTiet], [MaDon], [MaMon], [SoLuong], [DonGia], [Note]) VALUES 
+(1, N'DH00001', N'MA085', 1, 50000.00, NULL),
+(2, N'DH00002', N'MA085', 1, 50000.00, NULL),
+(3, N'DH00002', N'MA086', 1, 60000.00, NULL),
+(4, N'DH00002', N'MA087', 1, 40000.00, NULL),
+(5, N'DH00003', N'MA086', 2, 60000.00, NULL),
+(6, N'DH00003', N'MA087', 1, 40000.00, NULL),
+(7, N'DH00004', N'MA010', 1, 250000.00, NULL),
+(8, N'DH00004', N'MA011', 1, 280000.00, NULL),
+(9, N'DH00004', N'MA012', 1, 90000.00, NULL),
+(10, N'DH00005', N'MA085', 1, 50000.00, NULL),
+(11, N'DH00006', N'MA001', 1, 65000.00, NULL),
+(12, N'DH00007', N'MA001', 1, 65000.00, NULL),
+(13, N'DH00008', N'MA001', 1, 65000.00, NULL),
+(14, N'DH00008', N'MA003', 1, 20000.00, NULL),
+(15, N'DH00008', N'MA151', 1, 70000.00, NULL),
+(16, N'DH00009', N'MA003', 1, 20000.00, NULL),
+(17, N'DH00010', N'MA151', 1, 70000.00, NULL),
+(18, N'DH00011', N'MA001', 2, 65000.00, NULL),
+(19, N'DH00011', N'MA002', 1, 55000.00, NULL),
+(20, N'DH00011', N'MA003', 1, 20000.00, NULL),
+(21, N'DH00011', N'MA151', 2, 70000.00, NULL),
+(22, N'DH00012', N'MA151', 1, 70000.00, NULL),
+(23, N'DH00013', N'MA001', 1, 65000.00, NULL),
+(24, N'DH00014', N'MA151', 3, 70000.00, NULL),
+(25, N'DH00015', N'MA151', 1, 70000.00, NULL),
+(26, N'DH00016', N'MA001', 1, 65000.00, NULL),
+(27, N'DH00016', N'MA002', 1, 55000.00, NULL),
+(28, N'DH00016', N'MA003', 1, 20000.00, NULL),
+(29, N'DH00016', N'MA151', 1, 70000.00, NULL),
+(30, N'DH00017', N'MA001', 1, 65000.00, NULL),
+(31, N'DH00017', N'MA151', 7, 70000.00, NULL),
+(32, N'DH00018', N'MA151', 11, 70000.00, NULL),
+(33, N'DH00019', N'MA151', 1, 70000.00, NULL),
+(34, N'DH00020', N'MA001', 5, 65000.00, NULL),
+(35, N'DH00020', N'MA002', 5, 55000.00, NULL),
+(36, N'DH00020', N'MA003', 5, 20000.00, NULL),
+(37, N'DH00020', N'MA151', 5, 70000.00, NULL),
+(38, N'DH00021', N'MA001', 1, 65000.00, NULL),
+(39, N'DH00021', N'MA002', 1, 55000.00, NULL),
+(40, N'DH00021', N'MA003', 1, 20000.00, NULL),
+(41, N'DH00021', N'MA151', 1, 70000.00, NULL),
+(42, N'DH00022', N'MA001', 1, 65000.00, NULL),
+(43, N'DH00022', N'MA002', 1, 55000.00, NULL),
+(44, N'DH00022', N'MA003', 2, 20000.00, NULL),
+(45, N'DH00022', N'MA151', 1, 70000.00, NULL),
+(46, N'DH00023', N'MA001', 1, 65000.00, NULL),
+(47, N'DH00023', N'MA002', 1, 55000.00, NULL),
+(48, N'DH00023', N'MA003', 1, 20000.00, NULL),
+(49, N'DH00023', N'MA151', 1, 70000.00, NULL),
+(50, N'DH00024', N'MA003', 1, 20000.00, NULL),
+(51, N'DH00025', N'MA003', 1, 20000.00, NULL),
+(52, N'DH00025', N'MA151', 1, 70000.00, NULL),
+(53, N'DH00026', N'MA151', 1, 70000.00, NULL),
+(54, N'DH00027', N'MA151', 1, 70000.00, NULL),
+(55, N'DH00028', N'MA151', 1, 70000.00, NULL),
+(56, N'DH00029', N'MA001', 1, 65000.00, NULL),
+(57, N'DH00029', N'MA002', 1, 55000.00, NULL),
+(58, N'DH00029', N'MA003', 1, 20000.00, NULL),
+(59, N'DH00029', N'MA151', 1, 70000.00, NULL),
+(60, N'DH00030', N'MA001', 1, 65000.00, NULL),
+(61, N'DH00030', N'MA002', 1, 55000.00, NULL),
+(62, N'DH00030', N'MA003', 1, 20000.00, NULL),
+(63, N'DH00030', N'MA151', 1, 70000.00, NULL),
+(64, N'DH00031', N'MA003', 1, 20000.00, NULL),
+(65, N'DH00032', N'MA002', 1, 55000.00, NULL),
+(66, N'DH00033', N'MA002', 1, 55000.00, NULL),
+(67, N'DH00033', N'MA003', 1, 20000.00, NULL),
+(68, N'DH00033', N'MA151', 1, 70000.00, NULL),
+(69, N'DH00034', N'MA002', 1, 55000.00, N'Thêm mắm tôm'),
+(70, N'DH00034', N'MA003', 1, 20000.00, N'ncbn'),
+(71, N'DH00035', N'MA002', 1, 55000.00, N'ko cơm, ko sườn'),
+(72, N'DH00035', N'MA001', 1, 65000.00, N'hành'),
+(73, N'DH00035', N'MA001', 1, 65000.00, N''),
+(74, N'DH00036', N'MA151', 1, 70000.00, N''),
+(75, N'DH00036', N'MA151', 1, 70000.00, N'Cơm gà không xối mỡ'),
+(76, N'DH00036', N'MA003', 1, 20000.00, N'không lấy canh chỉ lấy rong biển'),
+(77, N'DH00037', N'MA151', 1, 70000.00, N'Lấy mỗi gà'),
+(78, N'DH00037', N'MA151', 1, 70000.00, N'');
+SET IDENTITY_INSERT [dbo].[ChiTietDonHang] OFF;
+GO
+
+-- Insert Lịch Sử Giỏ Hàng
+INSERT INTO LichSuGioHang (MaGH, MaNH, MaMon, SoLuong, DonGia, TongTien, ThoiGianChon, MaKH, Note) VALUES 
+(N'GH00001', N'NH009', N'MA026', 7, 150000.00, 1050000.00, '2025-12-02T12:23:11.580', N'KH018', NULL),
+(N'GH00002', N'NH009', N'MA027', 4, 20000.00, 80000.00, '2025-12-02T12:23:12.640', N'KH018', NULL);
+GO
+
+-- Insert Đánh Giá Nhà Hàng
+INSERT INTO DanhGiaNhaHang (MaDGNH, MaDon, MaKH, MaNH, SoSao, BinhLuan, ThoiGian, HinhAnh) VALUES 
+(N'DGN07517127', N'DH00024', N'KH001', N'NH001', 5, N'', '2025-12-01T21:26:41.263', NULL),
+(N'DGN13967670', N'DH00025', N'KH001', N'NH001', 5, N'', '2025-12-01T21:55:44.560', NULL),
+(N'DGN14613588', N'DH00012', N'KH001', N'NH001', 5, N'', '2025-11-29T22:10:33.137', NULL),
+(N'DGN16452615', N'DH00037', N'KH001', N'NH001', 5, N'Ngon', '2025-12-04T15:06:41.647', NULL),
+(N'DGN19748347', N'DH00016', N'KH001', N'NH001', NULL, NULL, '2025-11-29T23:13:51.973', NULL),
+(N'DGN20598442', N'DH00030', N'KH019', N'NH001', 5, N'fdgdgfgd', '2025-12-02T12:49:22.570', NULL),
+(N'DGN23040466', N'DH00027', N'KH001', N'NH001', 5, N'ngon', '2025-12-01T22:18:02.813', NULL),
+(N'DGN23702905', N'DH00011', N'KH001', N'NH001', 5, N'Do an ngon ', '2025-11-29T18:16:12.370', NULL),
+(N'DGN28922549', N'DH00017', N'KH001', N'NH001', 5, N'', '2025-11-30T01:47:02.893', NULL),
+(N'DGN32018573', N'DH00015', N'KH001', N'NH001', NULL, NULL, '2025-11-29T23:09:53.203', NULL),
+(N'DGN36750633', N'DH00034', N'KH001', N'NH001', 5, N'', '2025-12-02T17:34:24.177', NULL),
+(N'DGN39060512', N'DH00010', N'KH001', N'NH001', 5, N'', '2025-11-29T16:05:23.907', NULL),
+(N'DGN44040071', N'DH00020', N'KH013', N'NH001', 5, N'', '2025-12-02T00:41:04.917', NULL),
+(N'DGN45550504', N'DH00029', N'KH001', N'NH001', 5, N'Đồ ăn ngon
+', '2025-12-01T22:52:05.060', NULL),
+(N'DGN55923661', N'DH00009', N'KH001', N'NH001', 5, N'', '2025-11-29T21:58:45.593', NULL),
+(N'DGN57154144', N'DH00028', N'KH001', N'NH001', 5, N'Ngon nhắm', '2025-12-01T22:49:04.343', NULL),
+(N'DGN60146402', N'DH00014', N'KH001', N'NH001', NULL, NULL, '2025-11-29T23:01:06.017', NULL),
+(N'DGN62640270', N'DH00031', N'KH019', N'NH001', 4, N'zvx', '2025-12-02T12:57:56.263', NULL),
+(N'DGN64874157', N'DH00013', N'KH001', N'NH001', 5, N'', '2025-11-29T22:13:46.487', NULL),
+(N'DGN69971917', N'DH00018', N'KH001', N'NH001', 5, N'', '2025-11-30T01:46:56.997', NULL),
+(N'DGN73722584', N'DH00026', N'KH001', N'NH001', 5, N'', '2025-12-01T21:58:07.873', NULL),
+(N'DGN86242963', N'DH00021', N'KH001', N'NH001', 5, N'', '2025-12-01T20:27:29.133', NULL),
+(N'DGN90477658', N'DH00036', N'KH001', N'NH001', 5, N'Cơm gà và Rong biển ngon', '2025-12-02T22:06:49.047', NULL),
+(N'DGN97482028', N'DH00033', N'KH001', N'NH001', 5, N'', '2025-12-02T17:34:30.260', NULL);
+GO
+
+-- Insert Đánh Giá Shipper
+INSERT INTO DanhGiaShipper (MaDG, MaDon, MaKH, MaShipper, SoSao, BinhLuan, ThoiGian) VALUES 
+(N'DGS02174727', N'DH00010', N'KH001', N'SP001', 5, N'', '2025-11-29T16:05:20.217'),
+(N'DGS04988839', N'DH00017', N'KH001', N'SP001', 1, N'', '2025-11-30T01:47:00.500'),
+(N'DGS10986629', N'DH00034', N'KH001', N'SP001', 5, N'', '2025-12-02T17:34:21.587'),
+(N'DGS12669077', N'DH00004', N'KH001', N'SP001', NULL, NULL, '2025-11-29T14:06:21.267'),
+(N'DGS12783452', N'DH00015', N'KH001', N'SP001', NULL, NULL, '2025-11-29T23:09:51.280'),
+(N'DGS13155548', N'DH00031', N'KH019', N'SP022', 1, N'sdfv', '2025-12-02T12:57:51.317'),
+(N'DGS18827764', N'DH00020', N'KH013', N'SP001', 5, N'', '2025-12-02T00:41:02.353'),
+(N'DGS19307825', N'DH00011', N'KH001', N'SP001', 5, N'Ship nhanh ', '2025-11-29T18:16:01.930'),
+(N'DGS31451550', N'DH00028', N'KH001', N'SP001', 5, N'', '2025-12-01T22:28:13.633'),
+(N'DGS34312051', N'DH00013', N'KH001', N'SP001', 5, N'', '2025-11-29T22:13:43.430'),
+(N'DGS38031811', N'DH00009', N'KH001', N'SP001', 5, N'', '2025-11-29T14:40:53.803'),
+(N'DGS40421063', N'DH00014', N'KH001', N'SP001', NULL, NULL, '2025-11-29T23:01:04.043'),
+(N'DGS41096762', N'DH00036', N'KH001', N'SP001', 5, N'', '2025-12-02T22:06:04.593'),
+(N'DGS42672588', N'DH00007', N'KH001', N'SP001', NULL, NULL, '2025-11-29T14:05:24.273'),
+(N'DGS44194379', N'DH00003', N'KH001', N'SP001', NULL, NULL, '2025-11-29T14:06:34.420'),
+(N'DGS44895598', N'DH00018', N'KH001', N'SP001', 5, N'', '2025-11-30T01:46:54.490'),
+(N'DGS49693878', N'DH00026', N'KH001', N'SP001', 5, N'', '2025-12-01T21:58:05.460'),
+(N'DGS52503632', N'DH00021', N'KH001', N'SP001', 5, N'', '2025-12-01T20:27:25.717'),
+(N'DGS58126783', N'DH00035', N'KH001', N'SP001', 1, N'', '2025-12-02T22:06:15.813'),
+(N'DGS60841915', N'DH00002', N'KH001', N'SP001', NULL, NULL, '2025-11-29T14:15:16.087'),
+(N'DGS63895933', N'DH00008', N'KH001', N'SP001', 4, N'', '2025-11-29T14:40:56.390'),
+(N'DGS64867233', N'DH00029', N'KH001', N'SP001', 5, N'Nhanh', '2025-12-01T22:51:56.970'),
+(N'DGS71472138', N'DH00006', N'KH001', N'SP001', NULL, NULL, '2025-11-29T14:05:37.147'),
+(N'DGS72639854', N'DH00027', N'KH001', N'SP001', 5, N'hihi', '2025-12-01T22:17:57.753'),
+(N'DGS74635421', N'DH00037', N'KH001', N'SP001', 5, N'Nhanh', '2025-12-04T15:06:27.953'),
+(N'DGS74834206', N'DH00030', N'KH019', N'SP022', 5, N'fbfsggfd', '2025-12-02T12:49:17.963'),
+(N'DGS75621840', N'DH00033', N'KH001', N'SP001', 5, N'', '2025-12-02T17:34:28.070'),
+(N'DGS81711280', N'DH00024', N'KH001', N'SP001', 5, N'', '2025-12-01T21:26:38.650'),
+(N'DGS82181288', N'DH00005', N'KH001', N'SP001', NULL, NULL, '2025-11-29T14:05:48.217'),
+(N'DGS86058514', N'DH00001', N'KH001', N'SP001', NULL, NULL, '2025-11-29T14:15:18.607'),
+(N'DGS86308121', N'DH00012', N'KH001', N'SP001', 5, N'', '2025-11-29T21:49:18.630'),
+(N'DGS90459550', N'DH00025', N'KH001', N'SP001', 5, N'', '2025-12-01T21:53:29.540'),
+(N'DGS98224325', N'DH00016', N'KH001', N'SP001', NULL, NULL, '2025-11-29T23:13:49.823');
+GO

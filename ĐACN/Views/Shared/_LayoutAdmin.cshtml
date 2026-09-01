@@ -1,0 +1,211 @@
+@* /Views/Shared/_LayoutAdmin.cshtml *@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - Admin Dashboard</title>
+    <link href="~/Content/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/Content/Site.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --admin-sidebar-bg: #111827;
+            --admin-sidebar-hover: #1f2937;
+            --admin-sidebar-text: #9ca3af;
+            --admin-sidebar-active: #ffffff;
+            --admin-bg: #f3f4f6;
+            --admin-card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--admin-bg);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Styling */
+        .admin-sidebar {
+            width: 260px;
+            min-height: 100vh;
+            background-color: var(--admin-sidebar-bg);
+            color: var(--admin-sidebar-text);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.05);
+        }
+
+        .admin-brand {
+            padding: 24px 20px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--admin-sidebar-active);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            letter-spacing: 0.5px;
+        }
+
+        .admin-menu {
+            list-style: none;
+            padding: 20px 0;
+            margin: 0;
+        }
+
+        .admin-menu-item {
+            padding: 4px 16px;
+        }
+
+        .admin-menu-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--admin-sidebar-text);
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .admin-menu-link:hover, .admin-menu-link.active {
+            background-color: var(--admin-sidebar-hover);
+            color: var(--admin-sidebar-active);
+        }
+
+        .admin-menu-title {
+            padding: 12px 36px 4px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #6b7280;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* Main Content */
+        .admin-main {
+            margin-left: 260px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-header {
+            background-color: var(--admin-card-bg);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .admin-content {
+            padding: 32px;
+            flex-grow: 1;
+        }
+
+        /* Card System for Data */
+        .admin-card {
+            background-color: var(--admin-card-bg);
+            border-radius: 16px;
+            border: 1px solid #f3f4f6;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        /* Modern Buttons */
+        .btn-modern {
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        /* Logout Link */
+        .logout-link {
+            color: #ef4444 !important;
+        }
+        .logout-link:hover {
+            background-color: rgba(239, 68, 68, 0.1) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-sidebar">
+        <div class="admin-brand">
+            ZFood Admin
+        </div>
+        <ul class="admin-menu">
+            <li class="admin-menu-item">
+                <a href="@Url.Action("ThongKe", "Admin")" class="admin-menu-link @(ViewBag.Title == "Thống kê" ? "active" : "")">
+                    Tổng quan (Dashboard)
+                </a>
+            </li>
+
+            <li class="admin-menu-title">Quản lý duyệt</li>
+            <li class="admin-menu-item">
+                <a href="@Url.Action("CapPhepCuaHang", "Admin")" class="admin-menu-link @(ViewBag.Title == "Cấp phép cửa hàng" ? "active" : "")">
+                    Duyệt nhà hàng
+                </a>
+            </li>
+            <li class="admin-menu-item">
+                <a href="@Url.Action("CapPhepShipper", "Admin")" class="admin-menu-link @(ViewBag.Title == "Cấp phép Shipper" ? "active" : "")">
+                    Duyệt Shipper
+                </a>
+            </li>
+
+            <li class="admin-menu-title">Dữ liệu</li>
+            <li class="admin-menu-item">
+                <a href="@Url.Action("DanhSachCuaHang", "Admin")" class="admin-menu-link @(ViewBag.Title == "Danh sách cửa hàng" ? "active" : "")">
+                    Nhà hàng
+                </a>
+            </li>
+            <li class="admin-menu-item">
+                <a href="@Url.Action("DanhSachShipper", "Admin")" class="admin-menu-link @(ViewBag.Title == "Danh sách Shipper" ? "active" : "")">
+                    Shipper
+                </a>
+            </li>
+            <li class="admin-menu-item">
+                <a href="@Url.Action("DanhSachNguoiDung", "Admin")" class="admin-menu-link @(ViewBag.Title == "Danh sách người dùng" ? "active" : "")">
+                    Khách hàng
+                </a>
+            </li>
+
+            <li class="admin-menu-title" style="margin-top: 40px;">Cá nhân</li>
+            <li class="admin-menu-item">
+                <a href="@Url.Action("DangXuat", "Account")" class="admin-menu-link logout-link">
+                    Đăng xuất
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="admin-main">
+        <header class="admin-header">
+            <div class="d-flex align-items-center">
+                <div class="text-end me-3">
+                    <div class="fw-bold" style="font-size: 0.9rem; color: #111827;">Quản trị viên</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">Administrator</div>
+                </div>
+                <div class="rounded-circle bg-dark d-flex justify-content-center align-items-center text-white fw-bold" style="width: 40px; height: 40px;">
+                    A
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            @RenderBody()
+        </main>
+    </div>
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>
