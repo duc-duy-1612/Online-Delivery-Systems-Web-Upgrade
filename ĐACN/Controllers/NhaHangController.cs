@@ -101,23 +101,30 @@ namespace ĐACN.Controllers
 
             var doanhThuTheoThang = db.DonHangs
                 .Where(d => d.MaNH == maNH && d.ThoiGianDat != null)
-                .GroupBy(d => d.ThoiGianDat.Value.Month)
+                .GroupBy(d => new { d.ThoiGianDat.Value.Year, d.ThoiGianDat.Value.Month })
+                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+                .ToList()
                 .Select(g => new
                 {
-                    Thang = g.Key,
+                    Nam = g.Key.Year,
+                    Thang = g.Key.Month,
                     TongDoanhThu = g.Sum(x => x.TongTien)
                 }).ToList();
 
-            ViewBag.LabelsThoiGian = doanhThuTheoThang.Select(x => "Tháng " + x.Thang).ToList();
+            ViewBag.LabelsThoiGian = doanhThuTheoThang.Select(x => $"Tháng {x.Thang}/{x.Nam}").ToList();
             ViewBag.DataDoanhThu = doanhThuTheoThang.Select(x => x.TongDoanhThu).ToList();
 
 
-            var dataTrangThai = db.DonHangs
+            var listTrangThai = db.DonHangs
                 .Where(d => d.MaNH == maNH)
-                .GroupBy(d => d.TrangThai)
-                .Select(g => g.Count()).ToList();
+                .Select(d => d.TrangThai)
+                .ToList();
 
-            ViewBag.DataTrangThaiDonHang = dataTrangThai;
+            int dangXuLy = listTrangThai.Count(t => t != "Hoàn thành" && t != "Hoàn tất" && t != "Đã hủy" && t != "Hủy");
+            int daGiao = listTrangThai.Count(t => t == "Hoàn thành" || t == "Hoàn tất");
+            int daHuy = listTrangThai.Count(t => t == "Đã hủy" || t == "Hủy");
+
+            ViewBag.DataTrangThaiDonHang = new List<int> { dangXuLy, daGiao, daHuy };
 
 
             var topSanPham = db.ChiTietDonHangs
