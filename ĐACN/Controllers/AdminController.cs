@@ -1,4 +1,4 @@
-﻿using ĐACN;
+using ĐACN;
 using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
@@ -13,8 +13,11 @@ using System.Web;
 using System.Web.Mvc;
 
 
+using ĐACN.Filters;
+
 namespace ĐACN.Controllers
 {
+    [AdminAuthorize]
     public class AdminController : BaseController
     {
 
@@ -87,7 +90,7 @@ namespace ĐACN.Controllers
             {
                 nhaHang.TaiKhoan.TenDangNhap = TenDangNhap;
                 if (!string.IsNullOrEmpty(MatKhau))
-                    nhaHang.TaiKhoan.MatKhau = MatKhau;
+                    nhaHang.TaiKhoan.MatKhau = BCrypt.Net.BCrypt.HashPassword(MatKhau);
 
                 if (!string.IsNullOrEmpty(TrangThaiTaiKhoan))
                 {
@@ -104,12 +107,12 @@ namespace ĐACN.Controllers
         [HttpPost]
         public ActionResult XoaNhaHang(string id)
         {
-            var nh = db.NhaHangs.Find(id);
-            if (nh != null)
+            var nh = db.NhaHangs.Include("TaiKhoan").FirstOrDefault(n => n.MaNH == id);
+            if (nh != null && nh.TaiKhoan != null)
             {
-                db.NhaHangs.Remove(nh);
+                nh.TaiKhoan.TrangThai = false;
                 db.SaveChanges();
-                TempData["Message"] = "Đã xóa nhà hàng thành công!";
+                TempData["Message"] = "Đã khóa tài khoản nhà hàng thành công!";
             }
             return RedirectToAction("DanhSachCuaHang");
         }
@@ -133,8 +136,8 @@ namespace ĐACN.Controllers
             {
                 MaTK = "TK" + Guid.NewGuid().ToString("N").Substring(0, 6),
                 TenDangNhap = TenDangNhap,
-                MatKhau = MatKhau,
-                VaiTro = "CuaHang",
+                MatKhau = BCrypt.Net.BCrypt.HashPassword(MatKhau),
+                VaiTro = "NhaHang",
                 TrangThai = true
             };
             db.TaiKhoans.Add(tk);
@@ -319,7 +322,7 @@ namespace ĐACN.Controllers
             {
                 MaTK = "TK" + DateTime.Now.Ticks,
                 TenDangNhap = TenDangNhap,
-                MatKhau = MatKhau,
+                MatKhau = BCrypt.Net.BCrypt.HashPassword(MatKhau),
                 VaiTro = VaiTro,
                 TrangThai = TrangThai
             };
@@ -425,12 +428,12 @@ namespace ĐACN.Controllers
         [HttpPost]
         public ActionResult XoaShipper(string id)
         {
-            var shipper = db.Shippers.Find(id);
-            if (shipper != null)
+            var shipper = db.Shippers.Include("TaiKhoan").FirstOrDefault(s => s.MaShipper == id);
+            if (shipper != null && shipper.TaiKhoan != null)
             {
-                db.Shippers.Remove(shipper);
+                shipper.TaiKhoan.TrangThai = false;
                 db.SaveChanges();
-                TempData["Message"] = "Xóa Shipper thành công!";
+                TempData["Message"] = "Đã khóa tài khoản Shipper thành công!";
             }
             return RedirectToAction("DanhSachShipper");
         }
@@ -477,8 +480,8 @@ namespace ĐACN.Controllers
             {
                 MaTK = "TK" + Guid.NewGuid().ToString("N").Substring(0, 6),
                 TenDangNhap = tenDangNhap,
-                MatKhau = matKhau,
-                VaiTro = "NguoiDung",
+                MatKhau = BCrypt.Net.BCrypt.HashPassword(matKhau),
+                VaiTro = "KhachHang",
                 TrangThai = true
             };
 
@@ -525,12 +528,11 @@ namespace ĐACN.Controllers
             if (kh == null) return HttpNotFound();
 
             if (kh.TaiKhoan != null)
-                db.TaiKhoans.Remove(kh.TaiKhoan);
+                kh.TaiKhoan.TrangThai = false;
 
-            db.KhachHangs.Remove(kh);
             db.SaveChanges();
 
-            TempData["Message"] = "Đã xóa người dùng thành công!";
+            TempData["Message"] = "Đã khóa tài khoản người dùng thành công!";
             return RedirectToAction("DanhSachNguoiDung");
         }
 

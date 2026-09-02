@@ -226,6 +226,43 @@
         color: #ccc;
         padding: 25px 0;
     }
+    
+    /* Skeleton Loading CSS */
+    .skeleton-card {
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .skeleton-img {
+        width: 100%;
+        height: 160px;
+        background: #e0e0e0;
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+    .skeleton-body {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .skeleton-text {
+        height: 15px;
+        background: #e0e0e0;
+        border-radius: 4px;
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+    .skeleton-text.w-75 { width: 75%; height: 20px; }
+    .skeleton-text.w-50 { width: 50%; }
+    .skeleton-text.w-100 { width: 100%; }
+    @@keyframes pulse {
+        0% { background-color: #e0e0e0; }
+        50% { background-color: #f5f5f5; }
+        100% { background-color: #e0e0e0; }
+    }
 </style>
 
 <section class="banner">
@@ -268,18 +305,34 @@
     @Html.Partial("_DanhMucPartial", Model.DanhMuc)
 </section>
 
-@if (Model.RecommendedNhaHang != null && Model.RecommendedNhaHang.Any())
-{
-    <section class="container mt-5">
-        <h2 class="section-title" style="color: #ff4b2b;">Dành riêng cho bạn</h2>
-        <p class="text-muted" style="margin-top: -15px; margin-bottom: 25px;">Gợi ý từ thói quen đặt món gần đây của bạn</p>
-        @Html.Partial("_NhaHangNoiBatPartial", Model.RecommendedNhaHang)
-    </section>
-}
+<section class="container mt-5" id="recommended-section" style="display: none;">
+    <h2 class="section-title" style="color: #ff4b2b;">Dành riêng cho bạn</h2>
+    <p class="text-muted" style="margin-top: -15px; margin-bottom: 25px;">Gợi ý từ thói quen đặt món gần đây của bạn</p>
+    <div id="recommended-container">
+        <!-- Dữ liệu sẽ load qua AJAX -->
+    </div>
+</section>
 
 <section id="result-section" class="container mt-5">
     <h2 class="section-title">Nhà hàng nổi bật</h2>
-    @Html.Partial("_NhaHangNoiBatPartial", Model.NhaHang)
+    <div id="nhahang-container">
+        <!-- Skeleton Loading -->
+        <div class="row g-4">
+            @for (int i = 0; i < 8; i++)
+            {
+                <div class="col-6 col-md-4 col-lg-3 mb-4">
+                    <div class="skeleton-card">
+                        <div class="skeleton-img"></div>
+                        <div class="skeleton-body">
+                            <div class="skeleton-text w-75"></div>
+                            <div class="skeleton-text w-100"></div>
+                            <div class="skeleton-text w-50"></div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
 </section>
 
 <section class="feedback mt-5">
@@ -327,25 +380,40 @@
         $(document).ready(function () {
             const isKhachHang = @((Session["TaiKhoan"] != null && (Session["TaiKhoan"] as ĐACN.TaiKhoan)?.VaiTro == "KhachHang").ToString().ToLower());
 
+            // Load Trang Chu Data via AJAX
+            var searchParams = new URLSearchParams(window.location.search);
+            var sort = searchParams.get('sort') || 'default';
+            var search = searchParams.get('search') || '';
+
+            $.ajax({
+                url: '@Url.Action("GetHomeData", "Home")',
+                type: 'GET',
+                data: { sort: sort, search: search },
+                success: function (res) {
+                    if (res.recommended && res.recommended.trim() !== "") {
+                        $('#recommended-container').html(res.recommended);
+                        $('#recommended-section').fadeIn();
+                    }
+                    
+                    if (res.nhahang && res.nhahang.trim() !== "") {
+                        $('#nhahang-container').html(res.nhahang);
+                    } else {
+                        $('#nhahang-container').html('<div class="alert alert-warning">Không tìm thấy nhà hàng nào.</div>');
+                    }
+                },
+                error: function () {
+                    $('#nhahang-container').html('<div class="alert alert-danger">Đã xảy ra lỗi khi tải dữ liệu nhà hàng.</div>');
+                }
+            });
+
             try {
                 const params = new URLSearchParams(window.location.search);
                 const searchParam = params.get('search');
                 const hasSearch = searchParam && searchParam.trim() !== "";
 
                 if (hasSearch) {
-
-
                     window.addEventListener('load', function () {
-
                         setTimeout(function () {
-                            try {
-                                var $target = $("#result-section");
-                                if ($target.length) {
-                                    $('html, body').animate({
-                                        scrollTop: $target.offset().top - 50
-                                    }, 600);
-                                }
-                            } catch (e) {
                             var $target = $("#result-section");
                             if ($target.length) {
                                 $('html, body').animate({
@@ -355,6 +423,8 @@
                         }, 150);
                     });
                 }
+            } catch (e) {
+                console.error(e);
             }
         });
     </script>

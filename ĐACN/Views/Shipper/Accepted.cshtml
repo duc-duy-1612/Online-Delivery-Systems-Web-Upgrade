@@ -129,20 +129,20 @@
                                             @if (o.ThoiGianDat.HasValue)
                                             {
                                                 <small class="text-muted">
-                                                    ⏰ @GetTimeAgo(o.ThoiGianDat)
+                                                    @GetTimeAgo(o.ThoiGianDat)
                                                 </small>
                                             }
                                             @if (o.SoLuongMon > 0)
                                             {
                                                 <small class="text-muted">
-                                                    📦 @o.SoLuongMon món
+                                                    @o.SoLuongMon món
                                                 </small>
                                             }
                                         </div>
 
                                         <div class="mb-2">
                                             <div class="d-flex align-items-start gap-2">
-                                                <small class="text-muted fw-bold">🏪 Nhà hàng:</small>
+                                                <small class="text-muted fw-bold">Nhà hàng:</small>
                                                 <div class="d-flex flex-column">
                                                     <small class="text-muted">@o.TenNhaHang</small>
                                                     <small class="text-muted">📍 @o.DiaChiNhaHang</small>
@@ -158,7 +158,7 @@
 
                                         <div class="mb-2">
                                             <div class="d-flex align-items-start gap-2">
-                                                <small class="text-muted fw-bold">👤 Khách hàng:</small>
+                                                <small class="text-muted fw-bold">Khách hàng:</small>
                                                 <div class="d-flex flex-column">
                                                     <small class="text-muted">@o.TenKhachHang</small>
                                                     @* Lấy trực tiếp DiaChiKhachHang (đã map từ DiaChiGiaoHang) *@
@@ -179,7 +179,7 @@
                                         {
                                             <div class="mb-2">
                                                 <small class="text-muted">
-                                                    <strong>📦 Món ăn:</strong> @o.DanhSachMonTomTat
+                                                    <strong>Món ăn:</strong> @o.DanhSachMonTomTat
                                                 </small>
                                             </div>
                                         }
@@ -211,34 +211,46 @@
 
                                         @if (!string.Equals(o.TrangThai, "Hoàn thành", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <div class="btn-group shadow-sm" style="border-radius: 50px; overflow: hidden;">
-                                                @using (Html.BeginForm("UpdateStatus", "Shipper", FormMethod.Post, new { @class = "m-0" }))
+                                            string nextState = "";
+                                            string nextStateText = "";
+                                            string formId = "swipe_form_" + o.MaDon;
+                                            
+                                            if (string.Equals(o.TrangThai, "Đã xác nhận", StringComparison.OrdinalIgnoreCase) || string.Equals(o.TrangThai, "Chờ xác nhận", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                nextState = "Đang lấy món";
+                                                nextStateText = "Vuốt để Đang lấy món";
+                                            }
+                                            else if (string.Equals(o.TrangThai, "Đang lấy món", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                nextState = "Đang giao";
+                                                nextStateText = "Vuốt để Đang giao";
+                                            }
+                                            else if (string.Equals(o.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                nextState = "Hoàn thành";
+                                                nextStateText = "Vuốt để Hoàn thành";
+                                            }
+
+                                            if (!string.IsNullOrEmpty(nextState))
+                                            {
+                                                using (Html.BeginForm("UpdateStatus", "Shipper", FormMethod.Post, new { @class = "m-0 w-100", id = formId }))
                                                 {
+                                                    @Html.AntiForgeryToken()
                                                     <input type="hidden" name="maDon" value="@o.MaDon" />
-                                                    <input type="hidden" name="trangThai" value="Đang lấy món" />
-                                                    <button type="submit" class="btn btn-sm @(string.Equals(o.TrangThai, "Đang lấy món", StringComparison.OrdinalIgnoreCase) ? "btn-success" : "btn-light")" style="padding: 10px 15px; font-weight: 500;"
-                                                            @(string.Equals(o.TrangThai, "Đang lấy món", StringComparison.OrdinalIgnoreCase) ? "disabled" : "")>
-                                                        Đang lấy món
-                                                    </button>
+                                                    <input type="hidden" name="trangThai" value="@nextState" />
+                                                    
+                                                    <div class="swipe-container mt-2 mb-2" style="position: relative; width: 100%; height: 50px; background: #e9ecef; border-radius: 25px; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);">
+                                                        <div class="swipe-text" style="position: absolute; width: 100%; line-height: 50px; text-align: center; color: #495057; font-weight: bold; pointer-events: none; z-index: 1;">
+                                                            @nextStateText <i class="fas fa-chevron-right ms-2 opacity-50"></i><i class="fas fa-chevron-right opacity-25"></i>
+                                                        </div>
+                                                        <input type="range" min="0" max="100" value="0" class="swipe-slider" style="width: 100%; height: 100%; opacity: 0; cursor: pointer; position: relative; z-index: 3;" oninput="handleSwipe(this, '@formId')">
+                                                        <div class="swipe-knob shadow" style="position: absolute; left: 0; top: 0; width: 50px; height: 50px; background: linear-gradient(135deg, #11998e, #38ef7d); border-radius: 50%; pointer-events: none; display: flex; align-items: center; justify-content: center; color: white; z-index: 2;">
+                                                            <i class="fas fa-motorcycle fs-5"></i>
+                                                        </div>
+                                                    </div>
                                                 }
-                                                @using (Html.BeginForm("UpdateStatus", "Shipper", FormMethod.Post, new { @class = "m-0" }))
-                                                {
-                                                    <input type="hidden" name="maDon" value="@o.MaDon" />
-                                                    <input type="hidden" name="trangThai" value="Đang giao" />
-                                                    <button type="submit" class="btn btn-sm @(string.Equals(o.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase) ? "btn-success" : "btn-light")" style="padding: 10px 15px; font-weight: 500;"
-                                                            @(string.Equals(o.TrangThai, "Đang giao", StringComparison.OrdinalIgnoreCase) ? "disabled" : "")>
-                                                        Đang giao
-                                                    </button>
-                                                }
-                                                @using (Html.BeginForm("UpdateStatus", "Shipper", FormMethod.Post, new { @class = "m-0" }))
-                                                {
-                                                    <input type="hidden" name="maDon" value="@o.MaDon" />
-                                                    <input type="hidden" name="trangThai" value="Hoàn thành" />
-                                                    <button type="submit" class="btn btn-sm btn-light text-success" style="padding: 10px 15px; font-weight: bold;">
-                                                        Hoàn tất giao
-                                                    </button>
-                                                }
-                                            </div>
+                                            }
+                                        }
 
                                             using (Html.BeginForm("Cancel", "Shipper", FormMethod.Post, new { @class = "m-0" }))
                                             {
@@ -275,7 +287,13 @@
                                                         </div>
                                                     </div>
                                                     <div class="mt-2 text-center border-top pt-2">
-                                                        <span id="route-status-text-@o.MaDon" class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</span>
+                                                        <span id="route-status-text-@o.MaDon" class="badge bg-warning text-dark mb-2"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</span>
+                                                        
+                                                        <div class="d-grid mt-1">
+                                                            <a href="#" class="btn btn-sm btn-success" id="btn-gmap-@o.MaDon" target="_blank" style="display:none;">
+                                                                <i class="fas fa-location-arrow me-1"></i> Mở Google Maps
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -365,6 +383,44 @@
         sendLocation(); 
         setInterval(sendLocation, 15000);
     });
+
+    // Handle Swipe-to-Accept Slider logic
+    function handleSwipe(element, formId) {
+        var val = element.value;
+        var knob = element.nextElementSibling;
+        var container = element.parentElement;
+        
+        var percent = val / 100;
+        var maxLeft = container.offsetWidth - knob.offsetWidth;
+        knob.style.left = (percent * maxLeft) + 'px';
+        
+        if (val >= 95) {
+            element.value = 100;
+            knob.style.left = maxLeft + 'px';
+            knob.innerHTML = '<i class="fas fa-check"></i>';
+            element.disabled = true;
+            
+            setTimeout(function() {
+                document.getElementById(formId).submit();
+            }, 300);
+        }
+    }
+
+    function resetSwipe(e) {
+        if (e.target.classList.contains('swipe-slider')) {
+            if (e.target.value < 95) {
+                e.target.value = 0;
+                var knob = e.target.nextElementSibling;
+                knob.style.left = '0px';
+                knob.style.transition = 'left 0.2s ease';
+                setTimeout(function() { knob.style.transition = ''; }, 200);
+            }
+        }
+    }
+
+    document.addEventListener('change', resetSwipe);
+    document.addEventListener('touchend', resetSwipe);
+    document.addEventListener('mouseup', resetSwipe);
 </script>
 
 @* MAP SCRIPT - Chỉ load khi có đơn đang xử lý *@
@@ -430,6 +486,16 @@
                             $('#distance-display-' + maDon).text(res.distanceText);
                             $('#duration-display-' + maDon).text(res.durationText);
                             $('#route-status-text-' + maDon).text(res.statusText).removeClass('bg-warning').addClass('bg-info');
+
+                            // Cập nhật link Google Maps
+                            var targetLat = res.routeType === "ToCustomer" ? (res.customerPoint ? res.customerPoint.lat : 0) : (res.restaurantPoint ? res.restaurantPoint.lat : 0);
+                            var targetLng = res.routeType === "ToCustomer" ? (res.customerPoint ? res.customerPoint.lng : 0) : (res.restaurantPoint ? res.restaurantPoint.lng : 0);
+                            
+                            if (targetLat !== 0 && targetLng !== 0) {
+                                $('#btn-gmap-' + maDon).attr('href', 'https://www.google.com/maps/dir/?api=1&destination=' + targetLat + ',' + targetLng).show();
+                            } else {
+                                $('#btn-gmap-' + maDon).hide();
+                            }
 
                             if (res.shipperPoint && res.shipperPoint.lat !== 0) {
                                 var newLatLng = [res.shipperPoint.lat, res.shipperPoint.lng];

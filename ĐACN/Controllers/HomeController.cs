@@ -18,32 +18,29 @@ namespace ĐACN.Controllers
 
         private (double? lat, double? lng) GeoCodeORS(string address)
         {
-            if (string.IsNullOrEmpty(address)) return (null, null);
-            try
+            if (string.IsNullOrEmpty(address)) return (null, null);            try
             {
                 string cleanedAddress = RemoveVietnameseSigns(address).Trim();
-                if (!cleanedAddress.ToLower().Contains("vietnam") && !cleanedAddress.ToLower().Contains("việt nam"))
+                if (!cleanedAddress.ToLower().Contains("vietnam") && !cleanedAddress.ToLower().Contains("viet nam"))
                     cleanedAddress += ", Vietnam";
 
-                using (var client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Add("User-Agent", "ZFoodApp");
-                    var url = $"https://api.openrouteservice.org/geocode/search?api_key={ORS_API_KEY}&text={Uri.EscapeDataString(cleanedAddress)}&size=1";
-                    var response = client.GetAsync(url).Result;
+                _sharedHttpClient.DefaultRequestHeaders.Remove("User-Agent");
+                _sharedHttpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ZFoodApp");
+                var url = $"https://api.openrouteservice.org/geocode/search?api_key={ORS_API_KEY}&text={Uri.EscapeDataString(cleanedAddress)}&size=1";
+                var response = _sharedHttpClient.GetAsync(url).Result;
 
-                    if (response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = response.Content.ReadAsStringAsync().Result;
+                    var obj = JObject.Parse(json);
+                    var features = obj["features"] as JArray;
+                    if (features != null && features.Count > 0)
                     {
-                        var json = response.Content.ReadAsStringAsync().Result;
-                        var obj = JObject.Parse(json);
-                        var features = obj["features"] as JArray;
-                        if (features != null && features.Count > 0)
-                        {
-                            var coords = features[0]["geometry"]["coordinates"];
-                            return (coords[1].Value<double>(), coords[0].Value<double>());
-                        }
+                        var coords = features[0]["geometry"]["coordinates"];
+                        return (coords[1].Value<double>(), coords[0].Value<double>());
                     }
                 }
-            }
+            }   }
             catch { }
             return (null, null);
         }
@@ -64,7 +61,6 @@ namespace ĐACN.Controllers
 
         public ActionResult TrangChu(string sort = "default", double? lat = null, double? lng = null, string search = "")
         {
-            AutoLoginTheoIP();
             if ((lat == null || lng == null) && Session["MaKH"] != null)
             {
                 string maKH = Session["MaKH"] as string;
@@ -131,23 +127,112 @@ namespace ĐACN.Controllers
 
             var model = new TrangChuViewModel
             {
-                DanhMuc = db.LoaiMonAns.ToList().Select(x => new LoaiMonAnViewModel
+                DanhMuc = db.LoaiMonAns.Select(x => new LoaiMonAnViewModel
+                {
+                    MaLoai = x.MaLoai,
+                    TenLoai = x.TenLoai,
+                    HinhAnh = x.HinhAnh
+                }).ToList().Select(x => new LoaiMonAnViewModel
                 {
                     MaLoai = x.MaLoai,
                     TenLoai = x.TenLoai,
                     HinhAnh = string.IsNullOrEmpty(x.HinhAnh) ? GetImageNameByMaLoai(x.MaLoai, x.TenLoai) : x.HinhAnh
                 }).ToList(),
-                NhaHang = nhaHangData,
-                RecommendedNhaHang = recommendedNhaHang
+                NhaHang = new List<NhaHangViewModel>(), // Sẽ load qua AJAX
+                RecommendedNhaHang = new List<NhaHangViewModel>() // Sẽ load qua AJAX
             };
 
             ViewBag.CurrentSort = sort;
+            ViewBag.Search = search;
             return View(model);
+        }
+
+        [HttpGet]
+        public ActionResult GetHomeData(string sort = "default", double? lat = null, double? lng = null, string search = "")
+        {
+            if ((lat == null || lng == null) && Session["MaKH"] != null)
+            {
+                string maKH = Session["MaKH"] as string;
+                var kh = db.KhachHangs.Find(maKH);
+                if (kh != null)
+                {
+                    lat = kh.Latitude; lng = kh.Longitude;
+                }
+            }
+
+            var nhaHangData = LoadNhaHangData(lat, lng);
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                string keyword = RemoveVietnameseSigns(search).ToLower().Trim();
+                var searchResult = nhaHangData.Where(x => RemoveVietnameseSigns(x.TenNH).ToLower().Contains(keyword) || RemoveVietnameseSigns(x.DiaChi).ToLower().Contains(keyword)).ToList();
+
+                var maNHHoatDong = nhaHangData.Select(nh => nh.MaNH).ToList();
+                var monAns = db.MonAns.Where(m => maNHHoatDong.Contains(m.MaNH)).ToList();
+                var maNHTheoMon = monAns.Where(m => RemoveVietnameseSigns(m.TenMon).ToLower().Contains(keyword)).Select(m => m.MaNH).Distinct().ToList();
+                var searchMonData = nhaHangData.Where(nh => maNHTheoMon.Contains(nh.MaNH)).ToList();
+                searchResult.AddRange(searchMonData);
+                nhaHangData = searchResult.GroupBy(x => x.MaNH).Select(g => g.First()).ToList();
+            }
+
+            nhaHangData = ApplySort(nhaHangData, sort);
+
+            List<NhaHangViewModel> recommendedNhaHang = null;
+            if (Session["MaKH"] != null)
+            {
+                string maKH = Session["MaKH"] as string;
+                var recentOrders = db.ChiTietDonHangs
+                    .Where(c => c.DonHang.MaKH == maKH)
+                    .OrderByDescending(c => c.DonHang.ThoiGianDat)
+                    .Take(20)
+                    .ToList();
+
+                var topCategory = recentOrders
+                    .GroupBy(c => c.MonAn.MaLoai)
+                    .OrderByDescending(g => g.Count())
+                    .Select(g => g.Key)
+                    .FirstOrDefault();
+
+                if (topCategory != null)
+                {
+                    var maNHList = db.MonAns.Where(m => m.MaLoai == topCategory).Select(m => m.MaNH).Distinct().ToList();
+                    recommendedNhaHang = nhaHangData
+                        .Where(n => maNHList.Contains(n.MaNH))
+                        .OrderByDescending(n => n.Score)
+                        .Take(4)
+                        .ToList();
+                }
+            }
+
+            string htmlRecommended = "";
+            string htmlNhaHang = "";
+
+            if (recommendedNhaHang != null && recommendedNhaHang.Any())
+            {
+                htmlRecommended = RenderPartialViewToString("_NhaHangNoiBatPartial", recommendedNhaHang);
+            }
+            htmlNhaHang = RenderPartialViewToString("_NhaHangNoiBatPartial", nhaHangData);
+
+            return Json(new { recommended = htmlRecommended, nhahang = htmlNhaHang }, JsonRequestBehavior.AllowGet);
+        }
+
+        // Helper method to render partial view to string
+        protected string RenderPartialViewToString(string viewName, object model)
+        {
+            if (string.IsNullOrEmpty(viewName))
+                viewName = ControllerContext.RouteData.GetRequiredString("action");
+            ViewData.Model = model;
+            using (var sw = new System.IO.StringWriter())
+            {
+                var viewResult = ViewEngines.Engines.FindPartialView(ControllerContext, viewName);
+                var viewContext = new ViewContext(ControllerContext, viewResult.View, ViewData, TempData, sw);
+                viewResult.View.Render(viewContext, sw);
+                return sw.GetStringBuilder().ToString();
+            }
         }
 
         public ActionResult DanhMuc()
         {
-            AutoLoginTheoIP();
 
             var danhMucList = db.LoaiMonAns.ToList().Select(x => new LoaiMonAnViewModel
             {
@@ -161,7 +246,6 @@ namespace ĐACN.Controllers
 
         public ActionResult NhaHang(string sort = "default", double? lat = null, double? lng = null)
         {
-            AutoLoginTheoIP();
             if ((lat == null || lng == null) && Session["MaKH"] != null)
             {
                 string maKH = Session["MaKH"] as string;
@@ -258,37 +342,19 @@ namespace ĐACN.Controllers
                 var maKH = db.KhachHangs.FirstOrDefault(k => k.MaTK == tk.MaTK)?.MaKH;
                 if (!string.IsNullOrEmpty(maKH)) Session["MaKH"] = maKH;
             }
-            var ip = LayDiaChiIP();
-            Response.Cookies.Add(new HttpCookie("ZFoodLoginIP", ip) { Expires = DateTime.Now.AddDays(30) });
-            Response.Cookies.Add(new HttpCookie("ZFoodUser", tk.TenDangNhap) { Expires = DateTime.Now.AddDays(30) });
             return Json(new { success = true });
         }
 
         public ActionResult Logout()
         {
             Session.Clear();
-            if (Request.Cookies["ZFoodLoginIP"] != null) Response.Cookies.Add(new HttpCookie("ZFoodLoginIP") { Expires = DateTime.Now.AddDays(-1) });
-            if (Request.Cookies["ZFoodUser"] != null) Response.Cookies.Add(new HttpCookie("ZFoodUser") { Expires = DateTime.Now.AddDays(-1) });
             return RedirectToAction("TrangChu");
         }
 
-
-
-        private void AutoLoginTheoIP()
+        public ActionResult KhachHangDangXuat()
         {
-            if (Session["TaiKhoan"] != null) return;
-            var cookieIP = Request.Cookies["ZFoodLoginIP"];
-            var cookieUser = Request.Cookies["ZFoodUser"];
-            if (cookieIP != null && cookieUser != null && cookieIP.Value == LayDiaChiIP())
-            {
-                var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == cookieUser.Value);
-
-                if (tk != null && tk.TrangThai == true)
-                {
-                    Session["TaiKhoan"] = tk;
-                    if (tk.VaiTro == "KhachHang") Session["MaKH"] = db.KhachHangs.FirstOrDefault(k => k.MaTK == tk.MaTK)?.MaKH;
-                }
-            }
+            Session.Clear();
+            return RedirectToAction("TrangChu");
         }
 
         private List<NhaHangViewModel> LoadNhaHangData(double? userLat = null, double? userLng = null)

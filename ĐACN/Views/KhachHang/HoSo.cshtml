@@ -108,6 +108,7 @@
                 <div class="card-body p-4 p-md-5">
                     @using (Html.BeginForm("CapNhatHoSo", "KhachHang", FormMethod.Post, new { enctype = "multipart/form-data" }))
                     {
+                        @Html.AntiForgeryToken()
                         <div class="row align-items-center">
                             <div class="col-md-4 text-center mb-5 mb-md-0">
                                 <div class="avatar-wrapper shadow-sm mb-3">

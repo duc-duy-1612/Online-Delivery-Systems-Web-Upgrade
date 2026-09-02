@@ -1,4 +1,4 @@
-﻿using ĐACN.Models;
+using ĐACN.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
@@ -160,7 +160,10 @@ namespace ĐACN.Controllers
         {
             if (!CheckLogin()) return RedirectLogin();
 
-            var nhaHang = db.NhaHangs.FirstOrDefault(n => n.MaNH == model.MaNH);
+            var maNH = Session["MaNH"]?.ToString();
+            if (model.MaNH != maNH) return HttpNotFound();
+
+            var nhaHang = db.NhaHangs.FirstOrDefault(n => n.MaNH == maNH);
             if (nhaHang == null) return HttpNotFound();
 
             var tk = db.TaiKhoans.FirstOrDefault(t => t.MaTK == nhaHang.MaTK);
@@ -205,7 +208,10 @@ namespace ĐACN.Controllers
         {
             if (!CheckLogin()) return RedirectLogin();
 
-            var nhaHang = db.NhaHangs.FirstOrDefault(n => n.MaNH == MaNH);
+            var maNHDangNhap = Session["MaNH"]?.ToString();
+            if (MaNH != maNHDangNhap) return HttpNotFound();
+
+            var nhaHang = db.NhaHangs.FirstOrDefault(n => n.MaNH == maNHDangNhap);
             if (nhaHang == null) return HttpNotFound();
 
             if (HinhAnhMoi == null || HinhAnhMoi.ContentLength == 0)
@@ -260,6 +266,21 @@ namespace ĐACN.Controllers
             return View("ThongTinCuaHang", nhaHang);
         }
 
+
+        [HttpPost]
+        public JsonResult ToggleTrangThaiMonAn(string id, bool isChecked)
+        {
+            if (!CheckLogin()) return Json(new { success = false, message = "Chưa đăng nhập" });
+            var maNH = Session["MaNH"]?.ToString();
+            var mon = db.MonAns.FirstOrDefault(m => m.MaMon == id && m.MaNH == maNH);
+            if (mon != null)
+            {
+                mon.TrangThai = isChecked;
+                db.SaveChanges();
+                return Json(new { success = true });
+            }
+            return Json(new { success = false, message = "Không tìm thấy món ăn" });
+        }
 
         public ActionResult QuanLySanPham()
         {
@@ -529,7 +550,8 @@ namespace ĐACN.Controllers
         public ActionResult ChinhSuaSanPham(string id)
         {
             if (!CheckLogin()) return RedirectLogin();
-            var mon = db.MonAns.Find(id);
+            var maNH = Session["MaNH"]?.ToString();
+            var mon = db.MonAns.FirstOrDefault(m => m.MaMon == id && m.MaNH == maNH);
             if (mon == null) return HttpNotFound();
 
             ViewBag.MaLoai = new SelectList(db.LoaiMonAns.ToList(), "MaLoai", "TenLoai", mon.MaLoai);
@@ -540,9 +562,10 @@ namespace ĐACN.Controllers
         public ActionResult ChinhSuaSanPham(MonAn monAn, HttpPostedFileBase HinhAnhFile)
         {
             if (!CheckLogin()) return RedirectLogin();
+            var maNH = Session["MaNH"]?.ToString();
             try
             {
-                var old = db.MonAns.Find(monAn.MaMon);
+                var old = db.MonAns.FirstOrDefault(m => m.MaMon == monAn.MaMon && m.MaNH == maNH);
                 if (old == null) return HttpNotFound();
 
                 old.TenMon = monAn.TenMon;
@@ -583,13 +606,15 @@ namespace ĐACN.Controllers
         public ActionResult XoaSanPham(string id)
         {
             if (!CheckLogin()) return RedirectLogin();
+            var maNH = Session["MaNH"]?.ToString();
             try
             {
-                var mon = db.MonAns.Find(id);
+                var mon = db.MonAns.FirstOrDefault(m => m.MaMon == id && m.MaNH == maNH);
                 if (mon == null) return HttpNotFound();
-                db.MonAns.Remove(mon);
+                
+                mon.TrangThai = false; // Soft delete: Ngừng bán thay vì xóa cứng
                 db.SaveChanges();
-                TempData["Success"] = "Đã xóa sản phẩm!";
+                TempData["Success"] = "Đã chuyển sản phẩm sang trạng thái ngừng bán!";
             }
             catch (Exception ex)
             {
@@ -694,11 +719,12 @@ namespace ĐACN.Controllers
         public ActionResult ChiTietDonHang(string id)
         {
             if (!CheckLogin()) return RedirectLogin();
+            var maNH = Session["MaNH"]?.ToString();
 
             var donHang = db.DonHangs
                                  .Include(d => d.KhachHang)
                                  .Include(d => d.Shipper)
-                                 .FirstOrDefault(d => d.MaDon == id);
+                                 .FirstOrDefault(d => d.MaDon == id && d.MaNH == maNH);
 
             if (donHang == null) return HttpNotFound();
 
@@ -1059,6 +1085,24 @@ namespace ĐACN.Controllers
 
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        public JsonResult CapNhatTrangThaiAjax(string maDon, string trangThai)
+        {
+            if (!CheckLogin()) return Json(new { success = false, message = "Chưa đăng nhập" });
+
+            var maNH = Session["MaNH"]?.ToString();
+            var donHang = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon && d.MaNH == maNH);
+            
+            if (donHang == null) return Json(new { success = false, message = "Không tìm thấy đơn hàng" });
+            if (donHang.TrangThai == "Đã hủy" || donHang.TrangThai == "Hủy") return Json(new { success = false, message = "Đơn đã hủy" });
+
+            donHang.TrangThai = trangThai;
+            db.SaveChanges();
+            
+            return Json(new { success = true, message = "Cập nhật thành công" });
+        }
+
+        [HttpPost]
         public ActionResult CapNhatLamXong(string maDon)
         {
             if (!CheckLogin()) return RedirectLogin();
@@ -1080,6 +1124,12 @@ namespace ĐACN.Controllers
             if (donHang == null)
             {
                 TempData["Error"] = "Không tìm thấy đơn hàng hoặc bạn không có quyền cập nhật đơn hàng này!";
+                return RedirectToAction("DanhSachDonHang");
+            }
+
+            if (donHang.TrangThai == "Đã hủy" || donHang.TrangThai == "Hủy" || donHang.TrangThai == "Hoàn thành" || donHang.TrangThai == "Đang lấy món")
+            {
+                TempData["Error"] = "Trạng thái đơn hàng không hợp lệ (đơn đã bị hủy hoặc đã được cập nhật trước đó)!";
                 return RedirectToAction("DanhSachDonHang");
             }
 

@@ -1,207 +1,309 @@
 @model IEnumerable<ĐACN.Models.DonHangListViewModel>
 
 @{
-    ViewBag.Title = "Danh sách đơn hàng";
+    ViewBag.Title = "Danh sách đơn hàng (Kanban)";
     Layout = "~/Views/Shared/_LayoutNhaHang.cshtml";
 }
 
-<div class="card shadow-sm mt-4">
-    <div class="card-header bg-white pt-4 pb-3 border-bottom-0">
-        <h4 class="mb-3 fw-bold text-dark"><i class="bi bi-receipt me-2"></i> Danh sách đơn hàng</h4>
+<!-- CSS cho Kanban Board -->
+<style>
+    .kanban-board {
+        display: flex;
+        overflow-x: auto;
+        padding-bottom: 20px;
+        min-height: 70vh;
+        gap: 1.5rem;
+    }
+    .kanban-column {
+        flex: 1;
+        min-width: 300px;
+        background: #f4f5f7;
+        border-radius: 8px;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+    }
+    .kanban-column-header {
+        font-weight: bold;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e1e4e8;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .kanban-cards {
+        flex: 1;
+        min-height: 150px;
+    }
+    .kanban-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        cursor: grab;
+        border-left: 4px solid transparent;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .kanban-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    .kanban-card:active {
+        cursor: grabbing;
+    }
+    .kanban-card.status-new { border-left-color: #dc3545; }
+    .kanban-card.status-prep { border-left-color: #ffc107; }
+    .kanban-card.status-ready { border-left-color: #0dcaf0; }
+    .kanban-card.status-done { border-left-color: #198754; }
 
-        <form method="get" action="@Url.Action("DanhSachDonHang", "NhaHang")" class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label text-muted small fw-bold">TỪ NGÀY</label>
-                <input type="date" name="tuNgay" class="form-control bg-light" value="@ViewBag.TuNgay" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label text-muted small fw-bold">ĐẾN NGÀY</label>
-                <input type="date" name="denNgay" class="form-control bg-light" value="@ViewBag.DenNgay" />
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100 btn-action" style="background: linear-gradient(135deg, #f2994a, #f2c94c); border: none;">
-                    <i class="bi bi-search"></i> Lọc
-                </button>
-            </div>
+    .card-title {
+        font-weight: 700;
+        margin-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .card-customer {
+        font-weight: 600;
+        color: #333;
+    }
+    .card-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .card-shipper {
+        font-size: 0.85rem;
+        background: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 12px;
+        display: inline-block;
+        margin-top: 8px;
+    }
+    .sortable-ghost {
+        opacity: 0.4;
+        background-color: #f8f9fa;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-dark"><i class="bi bi-kanban"></i> Quản lý Đơn hàng</h3>
+        
+        <form method="get" action="@Url.Action("DanhSachDonHang", "NhaHang")" class="d-flex gap-2">
+            <input type="date" name="tuNgay" class="form-control" value="@ViewBag.TuNgay" />
+            <input type="date" name="denNgay" class="form-control" value="@ViewBag.DenNgay" />
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Lọc</button>
         </form>
     </div>
 
-    <div class="card-body p-0">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th class="ps-4">Mã đơn</th>
-                    <th>Khách hàng</th>
-                    <th>Ngày đặt</th>
-                    <th>Tổng tiền</th>
-                    <th>Trạng thái</th>
-                    <th>Shipper</th>
-                    <th class="text-center pe-4" style="width: 200px;">Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!Model.Any())
+    @Html.AntiForgeryToken()
+
+    <div class="kanban-board">
+        <!-- Cột 1: Mới nhận -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <span class="text-danger"><i class="bi bi-bell-fill"></i> Mới nhận (Chờ xác nhận)</span>
+                <span class="badge bg-danger rounded-pill" id="count-new">0</span>
+            </div>
+            <div class="kanban-cards" id="col-new" data-status="Chờ xác nhận">
+                @foreach (var don in Model.Where(d => d.TrangThai == "Chờ xác nhận" || d.TrangThai == "Đang xử lý" || string.IsNullOrEmpty(d.TrangThai)))
                 {
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-4">
-                            <i class="bi bi-inbox fs-1 d-block mb-2 text-black-50"></i>
-                            Không có đơn hàng nào
-                        </td>
-                    </tr>
+                    <div class="kanban-card status-new" data-id="@don.MaDon">
+                        <div class="card-title">
+                            <span class="text-primary">#@don.MaDon</span>
+                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
+                        </div>
+                        <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
+                        <div class="card-time mt-1"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM/yyyy"))</div>
+                        <div class="mt-2 text-end">
+                            <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
+                        </div>
+                    </div>
                 }
-                else
+            </div>
+        </div>
+
+        <!-- Cột 2: Đang chuẩn bị -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <span class="text-warning text-dark"><i class="bi bi-fire"></i> Đang chuẩn bị</span>
+                <span class="badge bg-warning text-dark rounded-pill" id="count-prep">0</span>
+            </div>
+            <div class="kanban-cards" id="col-prep" data-status="Đã xác nhận">
+                @foreach (var don in Model.Where(d => d.TrangThai == "Đã xác nhận"))
                 {
-                    foreach (var don in Model)
-                    {
-                        <tr>
-                            <td class="order-ma-don ps-4 text-primary fw-bold">@don.MaDon</td>
-                            <td class="order-khach-hang fw-bold text-dark">@don.TenKhachHang</td>
-                            <td class="order-thoi-gian text-muted">@(don.ThoiGianDat?.ToString("dd/MM/yyyy HH:mm"))</td>
-                            <td class="order-tong-tien fw-bold text-success">@string.Format("{0:N0} đ", don.TongTien)</td>
-                            <td class="order-trang-thai">
-                                @if (don.TrangThai == "True" || don.TrangThai == "Hoàn thành")
-                                {
-                                    <span class="badge" style="background: linear-gradient(135deg, #11998e, #38ef7d); border-radius: 50px; padding: 6px 12px;">Hoàn thành</span>
-                                }
-                                else if (don.TrangThai == "Đang lấy món" || don.TrangThai == "Đang giao")
-                                {
-                                    <span class="badge" style="background: linear-gradient(135deg, #f2994a, #f2c94c); border-radius: 50px; padding: 6px 12px;">@don.TrangThai</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-light text-secondary border" style="border-radius: 50px; padding: 6px 12px;">@(don.TrangThai ?? "Đang xử lý")</span>
-                                }
-                            </td>
-                            <td class="order-shipper text-muted">@(don.TenShipper ?? "Chưa có")</td>
-                            <td class="text-center pe-4">
-                                <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })"
-                                   class="btn btn-sm btn-outline-info btn-action me-1">
-                                    <i class="bi bi-eye"></i> Xem
-                                </a>
-                                @if (don.TrangThai != "True" && don.TrangThai != "Hoàn thành" && string.IsNullOrEmpty(don.TenShipper))
-                                {
-                                    using (Html.BeginForm("CapNhatLamXong", "NhaHang", FormMethod.Post, new { @class = "d-inline", id = "form_lamxong_" + don.MaDon }))
-                                    {
-                                        <input type="hidden" name="maDon" value="@don.MaDon" />
-                                        <button type="button" class="btn btn-sm btn-outline-success btn-action"
-                                                onclick="confirmLamXong('@don.MaDon')">
-                                            <i class="bi bi-check2-circle"></i> Xong
-                                        </button>
-                                    }
-                                }
-                            </td>
-                        </tr>
-                    }
+                    <div class="kanban-card status-prep" data-id="@don.MaDon">
+                        <div class="card-title">
+                            <span class="text-primary">#@don.MaDon</span>
+                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
+                        </div>
+                        <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
+                        <div class="card-time mt-1"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM/yyyy"))</div>
+                        <div class="mt-2 text-end">
+                            <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
+                        </div>
+                    </div>
                 }
-            </tbody>
-        </table>
+            </div>
+        </div>
+
+        <!-- Cột 3: Đang giao / Chờ Shipper -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <span class="text-info text-dark"><i class="bi bi-bicycle"></i> Sẵn sàng / Đang giao</span>
+                <span class="badge bg-info text-dark rounded-pill" id="count-ready">0</span>
+            </div>
+            <div class="kanban-cards" id="col-ready" data-status="Đang lấy món">
+                @foreach (var don in Model.Where(d => d.TrangThai == "Đang lấy món" || d.TrangThai == "Đang giao"))
+                {
+                    <div class="kanban-card status-ready" data-id="@don.MaDon">
+                        <div class="card-title">
+                            <span class="text-primary">#@don.MaDon</span>
+                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
+                        </div>
+                        <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
+                        <div class="card-time mt-1"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM/yyyy"))</div>
+                        <div class="card-shipper"><i class="bi bi-box-seam"></i> @(don.TenShipper ?? "Chưa có Shipper")</div>
+                        <div class="mt-2 text-end">
+                            <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Cột 4: Hoàn thành -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <span class="text-success"><i class="bi bi-check-circle-fill"></i> Hoàn thành</span>
+                <span class="badge bg-success rounded-pill" id="count-done">0</span>
+            </div>
+            <div class="kanban-cards" id="col-done" data-status="Hoàn thành">
+                @foreach (var don in Model.Where(d => d.TrangThai == "Hoàn thành" || d.TrangThai == "True"))
+                {
+                    <div class="kanban-card status-done" data-id="@don.MaDon">
+                        <div class="card-title">
+                            <span class="text-primary">#@don.MaDon</span>
+                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
+                        </div>
+                        <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
+                        <div class="mt-2 text-end">
+                            <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
     </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    $(document).ready(function () {
+@section scripts {
+    <!-- Thư viện SortableJS cho Kéo Thả -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function () {
+            function updateCounts() {
+                $('#count-new').text($('#col-new .kanban-card').length);
+                $('#count-prep').text($('#col-prep .kanban-card').length);
+                $('#count-ready').text($('#col-ready .kanban-card').length);
+                $('#count-done').text($('#col-done .kanban-card').length);
+            }
+            updateCounts();
 
-        var refreshIntervalMs = 15000;
-        var isRefreshing = false;
-        var refreshIntervalId = null;
+            const antiForgeryToken = $('input[name="__RequestVerificationToken"]').val();
 
-        function updateOrderList() {
-            if (isRefreshing) return;
-            isRefreshing = true;
+            // Khởi tạo Sortable cho các cột
+            const columns = ['col-new', 'col-prep', 'col-ready', 'col-done'];
+            columns.forEach(col => {
+                new Sortable(document.getElementById(col), {
+                    group: 'shared', 
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    onEnd: function (evt) {
+                        const itemEl = evt.item;  // Thẻ vừa kéo
+                        const toList = evt.to;    // Cột đích
+                        const fromList = evt.from; // Cột nguồn
+                        
+                        if (toList === fromList) return; // Không đổi cột
 
+                        const maDon = itemEl.getAttribute('data-id');
+                        const newStatus = toList.getAttribute('data-status');
 
-            var tuNgay = $('input[name="tuNgay"]').val();
-            var denNgay = $('input[name="denNgay"]').val();
+                        // Cập nhật class viền thẻ
+                        $(itemEl).removeClass('status-new status-prep status-ready status-done');
+                        if(newStatus === "Chờ xác nhận") $(itemEl).addClass('status-new');
+                        if(newStatus === "Đã xác nhận") $(itemEl).addClass('status-prep');
+                        if(newStatus === "Đang lấy món") $(itemEl).addClass('status-ready');
+                        if(newStatus === "Hoàn thành") $(itemEl).addClass('status-done');
 
-            $.ajax({
-                url: '@Url.Action("GetDanhSachDonHangUpdate", "NhaHang")',
-                type: 'GET',
-                data: {
-                    tuNgay: tuNgay,
-                    denNgay: denNgay
-                },
-                success: function (response) {
-                    if (response.success && response.orders) {
-                        var tbody = $('table tbody');
-
-
-                        var hasChanges = false;
-
-
-                        response.orders.forEach(function (order) {
-                            var row = tbody.find('tr').filter(function () {
-                                return $(this).find('.order-ma-don').text() === order.MaDon;
-                            });
-
-                            if (row.length > 0) {
-
-                                var currentStatus = row.find('.order-trang-thai .badge').text().trim();
-                                var newStatus = order.TrangThaiDisplay;
-
-                                var currentShipper = row.find('.order-shipper').text().trim();
-                                var newShipper = order.TenShipper || 'Chưa có';
-
-                                if (currentStatus !== newStatus || currentShipper !== newShipper) {
-                                    hasChanges = true;
-
-
-                                    var badge = row.find('.order-trang-thai .badge');
-                                    badge.removeClass('bg-success bg-warning text-dark');
-                                    badge.addClass(order.TrangThaiClass);
-                                    badge.text(newStatus);
-
-
-                                    row.find('.order-shipper').text(newShipper);
-
-
-                                    row.css('background-color', '#fff3cd');
-                                    setTimeout(function () {
-                                        row.css('background-color', '');
-                                    }, 2000);
+                        // Cập nhật Database qua AJAX
+                        $.ajax({
+                            url: '@Url.Action("CapNhatTrangThaiAjax", "NhaHang")',
+                            type: 'POST',
+                            data: {
+                                maDon: maDon,
+                                trangThai: newStatus,
+                                __RequestVerificationToken: antiForgeryToken
+                            },
+                            success: function(res) {
+                                if(res.success) {
+                                    updateCounts();
+                                    const Toast = Swal.mixin({
+                                        toast: true,
+                                        position: 'bottom-end',
+                                        showConfirmButton: false,
+                                        timer: 3000
+                                    });
+                                    Toast.fire({
+                                        icon: 'success',
+                                        title: 'Đã cập nhật đơn #' + maDon
+                                    });
+                                } else {
+                                    Swal.fire('Lỗi', res.message, 'error');
+                                    // Hoàn tác kéo thả
+                                    fromList.appendChild(itemEl);
                                 }
+                            },
+                            error: function() {
+                                Swal.fire('Lỗi', 'Không thể kết nối đến server.', 'error');
+                                fromList.appendChild(itemEl);
                             }
                         });
+                    }
+                });
+            });
 
-
-                        if (hasChanges) {
-                            console.log('Đã cập nhật trạng thái đơn hàng');
+            // Tự động làm mới danh sách (Polling giống phiên bản cũ)
+            setInterval(function() {
+                var tuNgay = $('input[name="tuNgay"]').val();
+                var denNgay = $('input[name="denNgay"]').val();
+                
+                $.get('@Url.Action("GetDanhSachDonHangUpdate", "NhaHang")', { tuNgay: tuNgay, denNgay: denNgay }, function(res) {
+                    if (res.success && res.orders) {
+                        // So sánh số lượng đơn để biết có đơn mới
+                        let totalCurrent = $('.kanban-card').length;
+                        let totalNew = res.orders.length;
+                        if (totalNew > totalCurrent) {
+                            // Phát âm thanh
+                            var audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                            audio.play().catch(e => {});
+                            
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'info',
+                                title: 'Bạn có đơn hàng mới!',
+                                showConfirmButton: false,
+                                timer: 3000
+                            }).then(() => {
+                                window.location.reload();
+                            });
                         }
                     }
-                    isRefreshing = false;
-                },
-                error: function () {
-                    isRefreshing = false;
-                    console.error('Lỗi khi cập nhật danh sách đơn hàng');
-                }
-            });
-        }
-
-
-        refreshIntervalId = setInterval(updateOrderList, refreshIntervalMs);
-
-
-        $(window).on('beforeunload', function () {
-            if (refreshIntervalId !== null) {
-                clearInterval(refreshIntervalId);
-            }
+                });
+            }, 15000);
         });
-    });
-
-    function confirmLamXong(maDon) {
-        Swal.fire({
-            title: 'Xác nhận đơn hàng',
-            text: 'Đơn hàng ' + maDon + ' đã làm xong và sẵn sàng cho shipper lấy?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Đã xong',
-            cancelButtonText: 'Hủy'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('form_lamxong_' + maDon).submit();
-            }
-        });
-    }
-</script>
+    </script>
+}

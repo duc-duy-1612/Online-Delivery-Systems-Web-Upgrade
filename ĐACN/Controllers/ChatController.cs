@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Web.Mvc;
 using ĐACN.Models;
@@ -8,8 +9,8 @@ namespace ĐACN.Controllers
 {
     public class ChatController : Controller
     {
-        // In-memory list to store chat messages
-        private static List<ChatMessage> _messages = new List<ChatMessage>();
+        // In-memory thread-safe queue to store chat messages
+        private static ConcurrentQueue<ChatMessage> _messages = new ConcurrentQueue<ChatMessage>();
 
         [HttpPost]
         public ActionResult SendMessage(string senderId, string senderName, string receiverId, string message, string maDon)
@@ -24,12 +25,12 @@ namespace ĐACN.Controllers
                 Message = message,
                 MaDon = maDon
             };
-            _messages.Add(chatMsg);
+            _messages.Enqueue(chatMsg);
             
             // Limit in-memory messages to prevent memory leak
-            if (_messages.Count > 10000)
+            while (_messages.Count > 10000)
             {
-                _messages.RemoveRange(0, 1000);
+                _messages.TryDequeue(out _);
             }
 
             return Json(new { success = true, msg = new {

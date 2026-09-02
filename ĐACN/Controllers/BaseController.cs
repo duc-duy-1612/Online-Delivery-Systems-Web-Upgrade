@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Mvc;
+using System.Configuration;
 
 namespace ĐACN.Controllers
 {
@@ -15,7 +16,13 @@ namespace ĐACN.Controllers
         protected readonly FoodDeliveryDBEntities db = new FoodDeliveryDBEntities();
         private bool _disposed = false;
 
-        protected const string ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImFhZWYwMjY0NjIzZTRmNGU4MTE2NGQzYzlmZjJkYTYxIiwiaCI6Im11cm11cjY0In0=";
+        // Shared HttpClient - reuse instance to prevent Socket Exhaustion
+        protected static readonly HttpClient _sharedHttpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(10)
+        };
+
+        protected static readonly string ORS_API_KEY = ConfigurationManager.AppSettings["ORS_API_KEY"];
 
 
         protected override void Dispose(bool disposing)
@@ -144,17 +151,15 @@ namespace ĐACN.Controllers
             {
                 try
                 {
-                    using (var client = new HttpClient())
+                    _sharedHttpClient.DefaultRequestHeaders.Remove("User-Agent");
+                    _sharedHttpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ZFoodDelivery/1.0");
+                    string search = Uri.EscapeDataString(query);
+                    string url = $"https://api.openrouteservice.org/geocode/search?api_key={ORS_API_KEY}&text={search}&size=1&boundary.country=VN";
+                    var response = _sharedHttpClient.GetAsync(url).Result;
+                    if (response.IsSuccessStatusCode)
                     {
-                        client.DefaultRequestHeaders.Add("User-Agent", "ZFoodDelivery/1.0");
-                        string search = Uri.EscapeDataString(query);
-                        string url = $"https://api.openrouteservice.org/geocode/search?api_key={ORS_API_KEY}&text={search}&size=1&boundary.country=VN";
-                        var response = client.GetAsync(url).Result;
-                        if (response.IsSuccessStatusCode)
-                        {
-                            var json = response.Content.ReadAsStringAsync().Result;
-                            return (true, JObject.Parse(json));
-                        }
+                        var json = response.Content.ReadAsStringAsync().Result;
+                        return (true, JObject.Parse(json));
                     }
                 }
                 catch { }

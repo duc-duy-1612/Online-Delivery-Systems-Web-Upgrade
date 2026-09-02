@@ -112,6 +112,7 @@
     <div class="review-container">
         @using (Html.BeginForm("LuuDanhGia", "KhachHang", FormMethod.Post, new { id = "formDanhGia" }))
         {
+            @Html.AntiForgeryToken()
             @Html.HiddenFor(m => m.MaDon)
             @Html.HiddenFor(m => m.MaNH)
             @Html.HiddenFor(m => m.MaShipper)

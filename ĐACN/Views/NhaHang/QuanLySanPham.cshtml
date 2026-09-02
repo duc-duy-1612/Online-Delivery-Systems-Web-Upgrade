@@ -54,14 +54,15 @@
                             <td><span class="badge bg-light text-secondary border">@item.LoaiMonAn.TenLoai</span></td>
                             <td class="text-primary fw-bold">@string.Format("{0:N0} đ", item.Gia)</td>
                             <td>
-                                @if (item.TrangThai == true)
-                                {
-                                    <span class="badge" style="background: linear-gradient(135deg, #11998e, #38ef7d); border-radius: 50px;">Đang bán</span>
-                                }
-                                else
-                                {
-                                    <span class="badge" style="background: #e9ecef; color: #6c757d; border-radius: 50px;">Ngừng bán</span>
-                                }
+                                <div class="form-check form-switch fs-5 mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="switch_@item.MaMon" 
+                                           @(item.TrangThai == true ? "checked" : "") 
+                                           style="cursor: pointer;"
+                                           onchange="toggleStatus('@item.MaMon', this.checked)">
+                                    <label class="form-check-label fs-6 fw-medium" for="switch_@item.MaMon" id="label_@item.MaMon" style="cursor: pointer;">
+                                        @(item.TrangThai == true ? "Đang bán" : "Ngừng bán")
+                                    </label>
+                                </div>
                             </td>
                             <td class="text-center pe-4">
                                 <a href="@Url.Action("ChinhSuaSanPham","NhaHang", new { id = item.MaMon })" class="btn btn-outline-primary btn-sm btn-action me-1">
@@ -98,25 +99,42 @@
     document.getElementById('statusFilter').addEventListener('change', function () {
         const val = this.value;
         document.querySelectorAll('#productTable tr').forEach(row => {
-            const status = row.querySelector('.badge')?.textContent.trim();
-            if (val === '' || (val === '1' && status === 'Đang bán') || (val === '0' && status === 'Ngừng bán')) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
+            const statusLabel = row.querySelector('.form-check-label');
+            if (statusLabel) {
+                const status = statusLabel.textContent.trim();
+                if (val === '' || (val === '1' && status === 'Đang bán') || (val === '0' && status === 'Ngừng bán')) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
             }
         });
     });
 
+    function toggleStatus(id, isChecked) {
+        const label = document.getElementById('label_' + id);
+        label.textContent = isChecked ? "Đang bán" : "Ngừng bán";
+
+        $.post('@Url.Action("ToggleTrangThaiMonAn", "NhaHang")', { id: id, isChecked: isChecked }, function (res) {
+            if (!res.success) {
+                Swal.fire('Lỗi', res.message || 'Không thể cập nhật trạng thái', 'error');
+                // Revert UI
+                document.getElementById('switch_' + id).checked = !isChecked;
+                label.textContent = !isChecked ? "Đang bán" : "Ngừng bán";
+            }
+        });
+    }
+
     function confirmDelete(id) {
         Swal.fire({
-            title: 'Xác nhận xóa',
-            text: "Bạn có chắc muốn xóa sản phẩm này không?",
+            title: 'Ngừng bán sản phẩm?',
+            text: "Sản phẩm này sẽ chuyển sang trạng thái Ngừng bán và không hiển thị với khách hàng nữa.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Có, xóa!',
-            cancelButtonText: 'Không'
+            confirmButtonColor: '#ff9800',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Có, ngừng bán!',
+            cancelButtonText: 'Hủy'
         }).then((result) => {
             if (result.isConfirmed) {
                 window.location.href = '@Url.Action("XoaSanPham", "NhaHang")?id=' + id;

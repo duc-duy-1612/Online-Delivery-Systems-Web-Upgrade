@@ -248,46 +248,8 @@ namespace ĐACN.Controllers
 
 
 
-        public void AutoLoginTheoIP()
-        {
-            if (Session["TaiKhoan"] != null) return;
-
-            var cookieIP = Request.Cookies["ZFoodLoginIP"];
-            var cookieUser = Request.Cookies["ZFoodUser"];
-
-            if (cookieIP != null && cookieUser != null)
-            {
-                string currentIP = LayDiaChiIP();
-                if (cookieIP.Value == currentIP)
-                {
-                    var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == cookieUser.Value);
-
-                    if (tk != null && tk.TrangThai == true)
-                    {
-                        Session["TaiKhoan"] = tk;
-                        if (tk.VaiTro == "Shipper")
-                        {
-                            var shipper = db.Shippers
-                                                 .Include("TaiKhoan")
-                                                 .FirstOrDefault(s => s.MaTK == tk.MaTK);
-
-                            if (shipper != null)
-                            {
-                                Session["MaShipper"] = shipper.MaShipper;
-                                Session["Shipper"] = shipper;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-
-
-
         private bool KiemTraDangNhap()
         {
-            AutoLoginTheoIP();
             var tk = Session["TaiKhoan"] as TaiKhoan;
             if (tk == null || tk.VaiTro != "Shipper" || tk.TrangThai != true) return false;
 
@@ -331,7 +293,7 @@ namespace ĐACN.Controllers
             }
 
             var danhSachMaDon = db.DonHangs
-                .Where(d => string.IsNullOrEmpty(d.MaShipper))
+                .Where(d => string.IsNullOrEmpty(d.MaShipper) && d.TrangThai != "Đã hủy" && d.TrangThai != "Hủy")
                 .Select(d => d.MaDon)
                 .ToList();
 
@@ -664,7 +626,7 @@ namespace ĐACN.Controllers
                 {
                     try
                     {
-                        var donCheck = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon && string.IsNullOrEmpty(d.MaShipper));
+                        var donCheck = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon && string.IsNullOrEmpty(d.MaShipper) && d.TrangThai != "Đã hủy" && d.TrangThai != "Hủy");
                         if (donCheck != null)
                         {
                             donCheck.MaShipper = shipper.MaShipper;
@@ -717,6 +679,18 @@ namespace ĐACN.Controllers
             if (don == null)
             {
                 TempData["Message"] = "Không thể cập nhật trạng thái.";
+                return RedirectToAction("Accepted");
+            }
+
+            if (trangThai == "Đang giao" && don.TrangThai != "Đang lấy món")
+            {
+                TempData["Message"] = "Cập nhật thất bại: Đơn hàng phải ở trạng thái 'Đang lấy món' mới có thể chuyển sang 'Đang giao'.";
+                return RedirectToAction("Accepted");
+            }
+
+            if (trangThai == "Hoàn thành" && don.TrangThai != "Đang giao")
+            {
+                TempData["Message"] = "Cập nhật thất bại: Đơn hàng phải ở trạng thái 'Đang giao' mới có thể 'Hoàn thành'.";
                 return RedirectToAction("Accepted");
             }
 

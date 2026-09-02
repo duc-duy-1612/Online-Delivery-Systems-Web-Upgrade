@@ -21,29 +21,8 @@ namespace ĐACN.Controllers
         private const double MAX_DELIVERY_RADIUS = 30.0;
 
 
-        public void AutoLoginTheoIP()
-        {
-            if (Session["TaiKhoan"] != null) return;
-            var cookieIP = Request.Cookies["ZFoodLoginIP"];
-            var cookieUser = Request.Cookies["ZFoodUser"];
-            if (cookieIP != null && cookieUser != null && cookieIP.Value == LayDiaChiIP())
-            {
-                var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == cookieUser.Value);
-
-                if (tk != null && tk.TrangThai == true)
-                {
-                    Session["TaiKhoan"] = tk;
-                    if (tk.VaiTro == "KhachHang")
-                    {
-                        Session["MaKH"] = db.KhachHangs.FirstOrDefault(k => k.MaTK == tk.MaTK)?.MaKH;
-                    }
-                }
-            }
-        }
-
         private bool KiemTraDangNhap()
         {
-            AutoLoginTheoIP();
             return Session["MaKH"] != null;
         }
 
@@ -554,6 +533,7 @@ namespace ĐACN.Controllers
 
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult DatHang(string maNH, string selectedItems, string diaChi, string phuongXa, string quanHuyen, string tinhTP, string sdt, string phuongThucTT)
         {
             if (!KiemTraDangNhap()) { TempData["Msg"] = "Vui lòng đăng nhập!"; return RedirectToAction("TrangChu", "Home"); }
@@ -642,42 +622,54 @@ namespace ĐACN.Controllers
             decimal totalShippingFee = phiShip + phiDichVu;
 
 
-            string lastMaDon = db.DonHangs.OrderByDescending(x => x.MaDon).Select(x => x.MaDon).FirstOrDefault();
-            int nextId = lastMaDon != null && lastMaDon.StartsWith("DH") && int.TryParse(lastMaDon.Substring(2), out int currentId) ? currentId + 1 : 1;
-            string maDon = "DH" + nextId.ToString().PadLeft(5, '0');
+            string maDon = "DH" + DateTime.Now.ToString("yyMMddHHmmss") + Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
 
             decimal tongTienHang = cart.Sum(x => (decimal)x.TongTien);
             decimal tongCong = tongTienHang + totalShippingFee;
 
-            var don = new DonHang
+            using (var transaction = db.Database.BeginTransaction())
             {
-                MaDon = maDon,
-                MaKH = maKH,
-                MaNH = maNH,
-                DiaChiGiaoHang = finalDiaChi,
-                SDTGiaoHang = sdt,
-                TrangThai = "Chờ xác nhận",
-                TongTien = tongCong,
-                ThoiGianDat = DateTime.Now,
-                Latitude = latKH,
-                Longitude = lngKH,
-                ShipFee = totalShippingFee
-            };
-            db.DonHangs.Add(don);
-
-            foreach (var item in cart)
-            {
-                db.ChiTietDonHangs.Add(new ChiTietDonHang
+                try
                 {
-                    MaDon = maDon,
-                    MaMon = item.MaMon,
-                    SoLuong = item.SoLuong,
-                    DonGia = item.DonGia,
-                    Note = item.Note
-                });
-                db.LichSuGioHangs.Remove(item);
+                    var don = new DonHang
+                    {
+                        MaDon = maDon,
+                        MaKH = maKH,
+                        MaNH = maNH,
+                        DiaChiGiaoHang = finalDiaChi,
+                        SDTGiaoHang = sdt,
+                        TrangThai = "Chờ xác nhận",
+                        TongTien = tongCong,
+                        ThoiGianDat = DateTime.Now,
+                        Latitude = latKH,
+                        Longitude = lngKH,
+                        ShipFee = totalShippingFee
+                    };
+                    db.DonHangs.Add(don);
+
+                    foreach (var item in cart)
+                    {
+                        var monAn = db.MonAns.Find(item.MaMon);
+                        db.ChiTietDonHangs.Add(new ChiTietDonHang
+                        {
+                            MaDon = maDon,
+                            MaMon = item.MaMon,
+                            SoLuong = item.SoLuong,
+                            DonGia = monAn != null ? monAn.Gia : item.DonGia,
+                            Note = item.Note
+                        });
+                        db.LichSuGioHangs.Remove(item);
+                    }
+                    db.SaveChanges();
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    TempData["Msg"] = "Lỗi khi tạo đơn hàng, vui lòng thử lại!";
+                    return RedirectToAction("XemGioHang");
+                }
             }
-            db.SaveChanges();
 
             if (phuongThucTT == "QR")
             {
@@ -696,11 +688,24 @@ namespace ĐACN.Controllers
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
             ViewBag.MaDon = maDon;
             ViewBag.TongTien = tongTien;
-            ViewBag.QRCode = Url.Content("~/images/others/qr_thanh_toan_mau.png");
+            ViewBag.QRCode = $"https://img.vietqr.io/image/970422-000012345678-compact2.png?amount={(int)tongTien}&addInfo={maDon}&accountName=ZFOOD%20COMPANY";
             return View();
         }
 
-        [HttpPost] public ActionResult XacNhanThanhToanQR(string maDon) { TempData["Msg"] = "Thanh toán thành công! Đơn hàng đang xử lý."; return RedirectToAction("DonHangCuaToi"); }
+        [HttpPost] 
+        public ActionResult XacNhanThanhToanQR(string maDon) 
+        {
+            if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
+            string maKH = Session["MaKH"] as string;
+            var don = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon && d.MaKH == maKH);
+            if (don != null)
+            {
+                don.TrangThai = "Đã nhận đơn";
+                db.SaveChanges();
+            }
+            TempData["Msg"] = "Thanh toán thành công! Đơn hàng đang xử lý."; 
+            return RedirectToAction("DonHangCuaToi"); 
+        }
 
 
         [HttpGet]
@@ -821,8 +826,9 @@ namespace ĐACN.Controllers
         public JsonResult GetTrackingInfo(string maDon)
         {
             if (!KiemTraDangNhap()) return Json(new { success = false, message = "Chưa đăng nhập" }, JsonRequestBehavior.AllowGet);
-            var don = db.DonHangs.Include(d => d.NhaHang).Include(d => d.KhachHang).FirstOrDefault(d => d.MaDon == maDon);
-            if (don == null) return Json(new { success = false, message = "Không tìm thấy đơn" }, JsonRequestBehavior.AllowGet);
+            string maKH = Session["MaKH"] as string;
+            var don = db.DonHangs.Include(d => d.NhaHang).Include(d => d.KhachHang).FirstOrDefault(d => d.MaDon == maDon && d.MaKH == maKH);
+            if (don == null) return Json(new { success = false, message = "Không tìm thấy đơn hoặc không có quyền" }, JsonRequestBehavior.AllowGet);
 
 
             double restLat = don.NhaHang?.Latitude ?? 0; double restLng = don.NhaHang?.Longitude ?? 0;
@@ -929,16 +935,38 @@ namespace ĐACN.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult LuuDanhGia(DanhGiaViewModel model)
         {
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
             string maKH = Session["MaKH"] as string;
+
+            var donHang = db.DonHangs.FirstOrDefault(d => d.MaDon == model.MaDon && d.MaKH == maKH);
+            if (donHang == null)
+            {
+                TempData["Msg"] = "Đơn hàng không tồn tại hoặc bạn không có quyền đánh giá đơn hàng này!";
+                return RedirectToAction("DonHangCuaToi");
+            }
+
+            if (donHang.TrangThai != "Hoàn thành" && donHang.TrangThai != "Hoàn tất")
+            {
+                TempData["Msg"] = "Đơn hàng chưa hoàn thành, không thể đánh giá!";
+                return RedirectToAction("DonHangCuaToi");
+            }
+
+            var existingReview = db.DanhGiaNhaHangs.FirstOrDefault(d => d.MaDon == model.MaDon);
+            if (existingReview != null)
+            {
+                TempData["Msg"] = "Bạn đã đánh giá đơn hàng này rồi!";
+                return RedirectToAction("DonHangCuaToi");
+            }
+
             try
             {
-                string maDGNH = "DGN" + DateTime.Now.Ticks.ToString().Substring(10);
+                string maDGNH = "DGN" + Guid.NewGuid().ToString("N").Substring(0, 9).ToUpper();
                 var dgNH = new DanhGiaNhaHang { MaDGNH = maDGNH, MaDon = model.MaDon, MaKH = maKH, MaNH = model.MaNH, SoSao = model.SoSaoNhaHang, BinhLuan = model.BinhLuanNhaHang, ThoiGian = DateTime.Now };
                 db.DanhGiaNhaHangs.Add(dgNH);
-                if (!string.IsNullOrEmpty(model.MaShipper)) { string maDGS = "DGS" + DateTime.Now.Ticks.ToString().Substring(10); var dgShipper = new DanhGiaShipper { MaDG = maDGS, MaDon = model.MaDon, MaKH = maKH, MaShipper = model.MaShipper, SoSao = model.SoSaoShipper, BinhLuan = model.BinhLuanShipper, ThoiGian = DateTime.Now }; db.DanhGiaShippers.Add(dgShipper); }
+                if (!string.IsNullOrEmpty(model.MaShipper)) { string maDGS = "DGS" + Guid.NewGuid().ToString("N").Substring(0, 9).ToUpper(); var dgShipper = new DanhGiaShipper { MaDG = maDGS, MaDon = model.MaDon, MaKH = maKH, MaShipper = model.MaShipper, SoSao = model.SoSaoShipper, BinhLuan = model.BinhLuanShipper, ThoiGian = DateTime.Now }; db.DanhGiaShippers.Add(dgShipper); }
                 db.SaveChanges();
                 TempData["Msg"] = "Cảm ơn bạn đã đánh giá dịch vụ!";
                 return RedirectToAction("DonHangCuaToi");
@@ -964,6 +992,7 @@ namespace ĐACN.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult CapNhatHoSo(string tenKH, string sdt, string diaChi, HttpPostedFileBase hinhAnh)
         {
             if (!KiemTraDangNhap())
@@ -1046,7 +1075,21 @@ namespace ĐACN.Controllers
 
             if (tk == null) return RedirectToAction("TrangChu", "Home");
 
-            if (tk.MatKhau != matKhauCu)
+            bool isPasswordValid = false;
+            
+            if (tk.MatKhau.StartsWith("$2a$") || tk.MatKhau.StartsWith("$2b$") || tk.MatKhau.StartsWith("$2y$"))
+            {
+                isPasswordValid = BCrypt.Net.BCrypt.Verify(matKhauCu, tk.MatKhau);
+            }
+            else
+            {
+                if (tk.MatKhau == matKhauCu)
+                {
+                    isPasswordValid = true;
+                }
+            }
+
+            if (!isPasswordValid)
             {
                 TempData["Msg"] = "Mật khẩu cũ không chính xác.";
                 return RedirectToAction("CaiDat");
@@ -1064,7 +1107,7 @@ namespace ĐACN.Controllers
                 return RedirectToAction("CaiDat");
             }
 
-            tk.MatKhau = matKhauMoi;
+            tk.MatKhau = BCrypt.Net.BCrypt.HashPassword(matKhauMoi);
             db.SaveChanges();
             TempData["Msg"] = "Đổi mật khẩu thành công.";
             return RedirectToAction("CaiDat");
@@ -1200,7 +1243,7 @@ namespace ĐACN.Controllers
                 else
                 {
 
-                    string maDG = "DGS" + DateTime.Now.Ticks.ToString().Substring(10);
+                    string maDG = "DGS" + Guid.NewGuid().ToString("N").Substring(0, 9).ToUpper();
                     var danhGia = new DanhGiaShipper
                     {
                         MaDG = maDG,
@@ -1283,7 +1326,7 @@ namespace ĐACN.Controllers
                 else
                 {
 
-                    string maDGNH = "DGN" + DateTime.Now.Ticks.ToString().Substring(10);
+                    string maDGNH = "DGN" + Guid.NewGuid().ToString("N").Substring(0, 9).ToUpper();
                     var danhGia = new DanhGiaNhaHang
                     {
                         MaDGNH = maDGNH,

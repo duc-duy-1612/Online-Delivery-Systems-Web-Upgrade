@@ -1,4 +1,4 @@
-﻿using ĐACN.Models;
+using ĐACN.Models;
 using System;
 using System.IO;
 using System.Linq;
@@ -15,7 +15,6 @@ namespace ĐACN.Controllers
         [HttpGet]
         public ActionResult Login()
         {
-            AutoLoginTheoIP();
             var tk = Session["TaiKhoan"] as TaiKhoan;
             if (tk != null)
             {
@@ -28,9 +27,28 @@ namespace ĐACN.Controllers
         [HttpPost]
         public JsonResult Login(string username, string password)
         {
-            var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == username && x.MatKhau == password);
+            var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == username);
 
             if (tk == null)
+                return Json(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không đúng." });
+
+            bool isPasswordValid = false;
+            
+            if (tk.MatKhau.StartsWith("$2a$") || tk.MatKhau.StartsWith("$2b$") || tk.MatKhau.StartsWith("$2y$"))
+            {
+                isPasswordValid = BCrypt.Net.BCrypt.Verify(password, tk.MatKhau);
+            }
+            else
+            {
+                if (tk.MatKhau == password)
+                {
+                    isPasswordValid = true;
+                    tk.MatKhau = BCrypt.Net.BCrypt.HashPassword(password);
+                    db.SaveChanges();
+                }
+            }
+
+            if (!isPasswordValid)
                 return Json(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không đúng." });
 
             if (tk.TrangThai == false)
@@ -61,17 +79,6 @@ namespace ĐACN.Controllers
                 }
             }
 
-            string ip = LayDiaChiIP();
-            Response.Cookies.Add(new HttpCookie("ZFoodLoginIP", ip)
-            {
-                Expires = DateTime.Now.AddDays(30)
-            });
-
-            Response.Cookies.Add(new HttpCookie("ZFoodUser", tk.TenDangNhap)
-            {
-                Expires = DateTime.Now.AddDays(30)
-            });
-
             return Json(new { success = true, role = tk.VaiTro });
         }
 
@@ -81,18 +88,6 @@ namespace ĐACN.Controllers
             string vaiTro = tk?.VaiTro;
 
             Session.Clear();
-
-            if (Request.Cookies["ZFoodLoginIP"] != null)
-            {
-                var c = new HttpCookie("ZFoodLoginIP") { Expires = DateTime.Now.AddDays(-1) };
-                Response.Cookies.Add(c);
-            }
-
-            if (Request.Cookies["ZFoodUser"] != null)
-            {
-                var c = new HttpCookie("ZFoodUser") { Expires = DateTime.Now.AddDays(-1) };
-                Response.Cookies.Add(c);
-            }
 
             if (vaiTro == "KhachHang")
                 return RedirectToAction("TrangChu", "Home");
@@ -133,7 +128,7 @@ namespace ĐACN.Controllers
                 {
                     MaTK = maTK,
                     TenDangNhap = username,
-                    MatKhau = password,
+                    MatKhau = BCrypt.Net.BCrypt.HashPassword(password),
                     VaiTro = role,
                     TrangThai = role == "KhachHang" ? true : (bool?)false
                 };
@@ -390,48 +385,6 @@ namespace ĐACN.Controllers
             smtp.Send(from, toEmail, subject, body);
         }
 
-        public void AutoLoginTheoIP()
-        {
-            if (Session["TaiKhoan"] != null)
-                return;
-
-            var cookieIP = Request.Cookies["ZFoodLoginIP"];
-            var cookieUser = Request.Cookies["ZFoodUser"];
-
-            if (cookieIP != null && cookieUser != null)
-            {
-                string currentIP = LayDiaChiIP();
-                if (cookieIP.Value == currentIP)
-                {
-                    var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == cookieUser.Value);
-                    if (tk != null && tk.TrangThai == true)
-                    {
-                        Session["TaiKhoan"] = tk;
-
-                        if (tk.VaiTro == "KhachHang")
-                        {
-                            var maKH = db.KhachHangs
-                                             .Where(k => k.MaTK == tk.MaTK)
-                                             .Select(k => k.MaKH)
-                                             .FirstOrDefault();
-                            if (!string.IsNullOrEmpty(maKH))
-                                Session["MaKH"] = maKH;
-                        }
-                        else if (tk.VaiTro == "Shipper")
-                        {
-                            var shipper = db.Shippers
-                                               .Where(s => s.MaTK == tk.MaTK)
-                                               .FirstOrDefault();
-                            if (shipper != null)
-                            {
-                                Session["MaShipper"] = shipper.MaShipper;
-                                Session["Shipper"] = shipper;
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
         private ActionResult RedirectTheoVaiTro(string vaiTro)
         {
