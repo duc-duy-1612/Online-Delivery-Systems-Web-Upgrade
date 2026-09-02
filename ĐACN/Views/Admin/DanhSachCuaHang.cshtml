@@ -16,12 +16,12 @@
 </div>
 
 <div class="admin-card border-0 mb-4 p-3">
-    <form method="get" class="row g-3 align-items-center">
+    <form id="filterForm" method="get" class="row g-3 align-items-center">
         <div class="col-md-5">
-            <input type="text" name="keyword" value="@ViewBag.Keyword" placeholder="Nhập tên hoặc địa chỉ cửa hàng..." class="form-control bg-light border-0 shadow-none" style="padding: 10px 16px; border-radius: 8px;" />
+            <input type="text" id="searchInput" name="keyword" value="@ViewBag.Keyword" placeholder="Nhập tên hoặc địa chỉ cửa hàng..." class="form-control bg-light border-0 shadow-none" style="padding: 10px 16px; border-radius: 8px;" autocomplete="off" />
         </div>
         <div class="col-md-4">
-            <select name="status" class="form-select bg-light border-0 shadow-none" style="padding: 10px 16px; border-radius: 8px;">
+            <select id="statusSelect" name="status" class="form-select bg-light border-0 shadow-none" style="padding: 10px 16px; border-radius: 8px;">
                 <option value="">Tất cả trạng thái</option>
                 <option value="Hoạt động" @(ViewBag.Status == "Hoạt động" ? "selected" : "")>Đang hoạt động</option>
                 <option value="Bị khóa" @(ViewBag.Status == "Bị khóa" ? "selected" : "")>Đã khóa</option>
@@ -53,15 +53,15 @@
                     <th class="text-muted fw-bold border-bottom-0 py-3 pe-4 text-end" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Thao tác</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="restaurantTableBody">
                 @{ int stt = 1; }
                 @foreach (var nh in Model)
                 {
                     <tr class="border-bottom" style="transition: all 0.2s ease;">
                         <td class="py-3 ps-4 text-muted">@stt</td>
                         <td class="py-3">
-                            <div class="fw-bold" style="color: #111827;">@nh.TenNH</div>
-                            <div class="text-muted small text-truncate" style="max-width: 200px;">@nh.DiaChi</div>
+                            <div class="fw-bold nh-name" style="color: #111827;">@nh.TenNH</div>
+                            <div class="text-muted small text-truncate nh-address" style="max-width: 200px;">@nh.DiaChi</div>
                         </td>
                         <td class="py-3 text-dark fw-medium">@nh.SDT</td>
                         <td class="py-3">
@@ -71,11 +71,11 @@
                         <td class="py-3 text-center">
                             @if (nh.TaiKhoan?.TrangThai == true)
                             {
-                                <span class="badge bg-success bg-opacity-10 text-success fw-normal px-3 py-2" style="border-radius: 50px;">Hoạt động</span>
+                                <span class="badge bg-success bg-opacity-10 text-success fw-normal px-3 py-2 nh-status" style="border-radius: 50px;">Hoạt động</span>
                             }
                             else
                             {
-                                <span class="badge bg-danger bg-opacity-10 text-danger fw-normal px-3 py-2" style="border-radius: 50px;">Bị khóa</span>
+                                <span class="badge bg-danger bg-opacity-10 text-danger fw-normal px-3 py-2 nh-status" style="border-radius: 50px;">Bị khóa</span>
                             }
                         </td>
                         <td class="py-3 pe-4 text-end">
@@ -90,3 +90,45 @@
         </table>
     </div>
 </div>
+
+@section scripts {
+    <script>
+        // Hàm loại bỏ dấu tiếng Việt để tìm kiếm chính xác
+        function removeAccents(str) {
+            if (!str) return '';
+            return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        }
+
+        $(document).ready(function () {
+            // Ngăn form submit reload trang
+            $('#filterForm').on('submit', function(e) {
+                e.preventDefault();
+            });
+
+            // Gắn sự kiện khi gõ phím hoặc đổi trạng thái
+            $('#searchInput, #statusSelect').on('input change', function () {
+                var keyword = removeAccents($('#searchInput').val());
+                var statusFilter = $('#statusSelect').val(); // "Hoạt động", "Bị khóa", hoặc ""
+
+                $('#restaurantTableBody tr').each(function () {
+                    var row = $(this);
+                    var name = removeAccents(row.find('.nh-name').text());
+                    var address = removeAccents(row.find('.nh-address').text());
+                    var status = row.find('.nh-status').text().trim();
+
+                    // Kiểm tra xem dòng này có khớp với từ khóa tìm kiếm không (tên hoặc địa chỉ)
+                    var matchKeyword = keyword === '' || name.includes(keyword) || address.includes(keyword);
+                    
+                    // Kiểm tra xem dòng này có khớp với trạng thái không
+                    var matchStatus = statusFilter === '' || status === statusFilter;
+
+                    if (matchKeyword && matchStatus) {
+                        row.show();
+                    } else {
+                        row.hide();
+                    }
+                });
+            });
+        });
+    </script>
+}

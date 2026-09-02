@@ -401,9 +401,14 @@
                         return;
                     }
                     
+                    var skippedStr = localStorage.getItem('skipped_rating_orders');
+                    var skippedOrders = skippedStr ? JSON.parse(skippedStr) : [];
+                    
                     $.ajax({
                         url: '/KhachHang/LayDonTiepTheoCanDanhGia',
                         type: 'GET',
+                        traditional: true,
+                        data: { skippedOrders: skippedOrders },
                         success: function (response) {
                             if (response.success && response.danhGia) {
                                 if (typeof window.hienThiModalDanhGia !== 'undefined') {

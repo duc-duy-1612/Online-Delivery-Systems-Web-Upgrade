@@ -40,7 +40,7 @@ namespace ĐACN.Controllers
                         return (coords[1].Value<double>(), coords[0].Value<double>());
                     }
                 }
-            }   }
+            }
             catch { }
             return (null, null);
         }

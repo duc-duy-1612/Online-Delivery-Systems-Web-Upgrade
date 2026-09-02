@@ -304,136 +304,50 @@
 
 
             $(document).on('click', '#btnBoQuaDanhGiaNH', function () {
-                var maDon = $('#ratingNHMaDon').val();
-
-                if (!maDon) {
-                    var modalElement = document.getElementById('danhGiaNhaHangModal');
-                    var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                    if (modalInstance) {
-                        modalInstance.hide();
-                    }
-                    setTimeout(function () {
-                        $('.modal-backdrop').remove();
-                        $('body').removeClass('modal-open');
-                        $('body').css('overflow', '');
-                        $('body').css('padding-right', '');
-                    }, 300);
-                    return;
+                var modalElement = document.getElementById('danhGiaNhaHangModal');
+                var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                } else {
+                    var newModal = new bootstrap.Modal(modalElement);
+                    newModal.hide();
                 }
-
-                var token = $('input[name="__RequestVerificationToken"]').val();
-
-                $.ajax({
-                    url: '/KhachHang/BoQuaDanhGiaNhaHang',
-                    type: 'POST',
-                    data: {
-                        maDon: maDon,
-                        __RequestVerificationToken: token
-                    },
-                    success: function (response) {
-                        $('#danhGiaNhaHangModal').data('already-processed', true);
-                        isProcessingNH = true;
-
-                        var modalElement = document.getElementById('danhGiaNhaHangModal');
-                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        } else {
-                            var newModal = new bootstrap.Modal(modalElement);
-                            newModal.hide();
-                        }
-
-                        setTimeout(function () {
-                            $('.modal-backdrop').remove();
-                            $('body').removeClass('modal-open');
-                            $('body').css('overflow', '');
-                            $('body').css('padding-right', '');
-                        }, 300);
-
-                        setTimeout(function () {
-                            isProcessingNH = false;
-                            if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
-                                window.kiemTraVaHienThiDonTiepTheo();
-                            }
-                        }, 1000);
-                    },
-                    error: function () {
-                        isProcessingNH = true;
-                        $('#danhGiaNhaHangModal').data('already-processed', true);
-
-                        var modalElement = document.getElementById('danhGiaNhaHangModal');
-                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        } else {
-                            var newModal = new bootstrap.Modal(modalElement);
-                            newModal.hide();
-                        }
-
-                        setTimeout(function () {
-                            $('.modal-backdrop').remove();
-                            $('body').removeClass('modal-open');
-                            $('body').css('overflow', '');
-                            $('body').css('padding-right', '');
-                        }, 300);
-
-                        setTimeout(function () {
-                            isProcessingNH = false;
-                            if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
-                                window.kiemTraVaHienThiDonTiepTheo();
-                            }
-                        }, 1000);
-                    }
-                });
             });
 
-
             $('#danhGiaNhaHangModal').on('hidden.bs.modal', function () {
-
                 $('.modal-backdrop').remove();
                 $('body').removeClass('modal-open');
                 $('body').css('overflow', '');
                 $('body').css('padding-right', '');
 
-                var maDon = $('#ratingNHMaDon').val();
                 var isFromHistory = $(this).data('from-history-page');
-
-
+                
                 if (isFromHistory && $(this).data('saved-success')) {
                     location.reload();
                     return;
                 }
-
-
-                if (maDon && !isProcessingNH && !$('#danhGiaNhaHangModal').data('already-processed')) {
+                
+                var maDon = $('#ratingNHMaDon').val();
+                
+                if (!isProcessingNH && !$('#danhGiaNhaHangModal').data('already-processed')) {
                     $('#danhGiaNhaHangModal').data('already-processed', true);
-                    isProcessingNH = true;
-
-                    var token = $('input[name="__RequestVerificationToken"]').val();
-                    $.ajax({
-                        url: '/KhachHang/BoQuaDanhGiaNhaHang',
-                        type: 'POST',
-                        data: {
-                            maDon: maDon,
-                            __RequestVerificationToken: token
-                        },
-                        success: function () {
-                            isProcessingNH = false;
-                            setTimeout(function () {
-                                if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
-                                    window.kiemTraVaHienThiDonTiepTheo();
-                                }
-                            }, 1000);
-                        },
-                        error: function () {
-                            isProcessingNH = false;
-                            setTimeout(function () {
-                                if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
-                                    window.kiemTraVaHienThiDonTiepTheo();
-                                }
-                            }, 1000);
+                    
+                    if (maDon) {
+                        var skippedStr = localStorage.getItem('skipped_rating_orders');
+                        var skippedOrders = skippedStr ? JSON.parse(skippedStr) : [];
+                        if (!skippedOrders.includes(maDon)) {
+                            skippedOrders.push(maDon);
+                            localStorage.setItem('skipped_rating_orders', JSON.stringify(skippedOrders));
                         }
-                    });
+                    }
+                    
+                    if (!isFromHistory) {
+                        setTimeout(function () {
+                            if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
+                                window.kiemTraVaHienThiDonTiepTheo();
+                            }
+                        }, 500);
+                    }
                 }
             });
         }

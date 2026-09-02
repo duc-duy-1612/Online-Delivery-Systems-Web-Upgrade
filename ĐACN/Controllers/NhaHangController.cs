@@ -744,6 +744,45 @@ namespace ĐACN.Controllers
             return View(donHang);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult CapNhatTrangThaiTuChiTiet(string maDon, string trangThai)
+        {
+            if (!CheckLogin()) return RedirectLogin();
+            var maNH = Session["MaNH"]?.ToString();
+
+            var don = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon && d.MaNH == maNH);
+            if (don != null)
+            {
+                don.TrangThai = trangThai;
+                try
+                {
+                    db.Database.ExecuteSqlCommand("IF OBJECT_ID('CHK_DonHang_TrangThai', 'C') IS NOT NULL ALTER TABLE DonHang DROP CONSTRAINT CHK_DonHang_TrangThai");
+                    db.SaveChanges();
+                    TempData["Msg"] = "Đã cập nhật trạng thái đơn hàng!";
+                }
+                catch (System.Data.Entity.Validation.DbEntityValidationException dbEx)
+                {
+                    string errorMsg = "";
+                    foreach (var validationErrors in dbEx.EntityValidationErrors)
+                    {
+                        foreach (var validationError in validationErrors.ValidationErrors)
+                        {
+                            errorMsg += string.Format("Property: {0} Error: {1} | ", validationError.PropertyName, validationError.ErrorMessage);
+                        }
+                    }
+                    TempData["Msg"] = "Lỗi validation: " + errorMsg;
+                }
+                catch (Exception ex)
+                {
+                    Exception inner = ex;
+                    while (inner.InnerException != null) inner = inner.InnerException;
+                    TempData["Msg"] = "Lỗi: " + inner.Message;
+                }
+            }
+            return RedirectToAction("DanhSachDonHang");
+        }
+
 
         public ActionResult XemDanhGia()
         {
@@ -1098,6 +1137,17 @@ namespace ĐACN.Controllers
 
             donHang.TrangThai = trangThai;
             db.SaveChanges();
+            
+            // Push Notification qua SignalR cho Khách Hàng
+            string notifTitle = "Trạng thái đơn hàng: " + maDon;
+            string notifMessage = "Đơn hàng của bạn đã chuyển sang trạng thái: " + trangThai;
+            string notifType = "info";
+            
+            if (trangThai == "Đang lấy món") notifType = "warning";
+            else if (trangThai == "Đang giao") notifType = "info";
+            else if (trangThai == "Sẵn sàng / Đang giao") notifType = "success";
+            
+            ĐACN.Hubs.NotificationHub.NotifyOrderUpdate("KH_" + donHang.MaKH, notifTitle, notifMessage, notifType);
             
             return Json(new { success = true, message = "Cập nhật thành công" });
         }

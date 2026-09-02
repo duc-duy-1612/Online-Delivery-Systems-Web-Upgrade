@@ -1,0 +1,1 @@
+SELECT DiaChi FROM KhachHang

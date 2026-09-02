@@ -202,82 +202,15 @@
             $(document).on('click', '#btnBoQuaDanhGia', function () {
                 var maDon = $('#ratingMaDon').val();
                 
-                if (!maDon) {
-                    var modalElement = document.getElementById('danhGiaShipperModal');
-                    var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                    if (modalInstance) {
-                        modalInstance.hide();
-                    }
-                    setTimeout(function() {
-                        $('.modal-backdrop').remove();
-                        $('body').removeClass('modal-open');
-                        $('body').css('overflow', '');
-                        $('body').css('padding-right', '');
-                    }, 300);
-                    return;
+                // Just hide the modal, the hidden.bs.modal event will handle the rest
+                var modalElement = document.getElementById('danhGiaShipperModal');
+                var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                } else {
+                    var newModal = new bootstrap.Modal(modalElement);
+                    newModal.hide();
                 }
-
-                var token = $('input[name="__RequestVerificationToken"]').val();
-
-                $.ajax({
-                    url: '/KhachHang/BoQuaDanhGia',
-                    type: 'POST',
-                    data: {
-                        maDon: maDon,
-                        __RequestVerificationToken: token
-                    },
-                    success: function (response) {
-                        $('#danhGiaShipperModal').data('already-processed', true);
-                        isProcessing = true;
-                        
-                        var modalElement = document.getElementById('danhGiaShipperModal');
-                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        } else {
-                            var newModal = new bootstrap.Modal(modalElement);
-                            newModal.hide();
-                        }
-                        
-                        setTimeout(function() {
-                            $('.modal-backdrop').remove();
-                            $('body').removeClass('modal-open');
-                            $('body').css('overflow', '');
-                            $('body').css('padding-right', '');
-                        }, 300);
-                        
-                        setTimeout(function () {
-                            isProcessing = false;
-                        }, 1000);
-                    },
-                    error: function () {
-                        isProcessing = true;
-                        $('#danhGiaShipperModal').data('already-processed', true);
-                        
-                        var modalElement = document.getElementById('danhGiaShipperModal');
-                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        } else {
-                            var newModal = new bootstrap.Modal(modalElement);
-                            newModal.hide();
-                        }
-                        
-                        setTimeout(function() {
-                            $('.modal-backdrop').remove();
-                            $('body').removeClass('modal-open');
-                            $('body').css('overflow', '');
-                            $('body').css('padding-right', '');
-                        }, 300);
-                        
-                        setTimeout(function () {
-                            isProcessing = false;
-                            if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
-                                window.kiemTraVaHienThiDonTiepTheo();
-                            }
-                        }, 1000);
-                    }
-                });
             });
 
             $('#danhGiaShipperModal').on('hidden.bs.modal', function () {
@@ -288,37 +221,23 @@
                 $('body').css('padding-right', '');
                 
                 var maDon = $('#ratingMaDon').val();
+                
+                // Add to localStorage when modal is hidden (skipped)
                 if (maDon && !isProcessing && !$('#danhGiaShipperModal').data('already-processed')) {
                     $('#danhGiaShipperModal').data('already-processed', true);
-                    isProcessing = true;
                     
-                    var token = $('input[name="__RequestVerificationToken"]').val();
-                    $.ajax({
-                        url: '/KhachHang/BoQuaDanhGia',
-                        type: 'POST',
-                        data: {
-                            maDon: maDon,
-                            __RequestVerificationToken: token
-                        },
-                        success: function () {
-                            isProcessing = false;
-                            var maDonVuaBoQua = $('#ratingMaDon').val();
-                            setTimeout(function () {
-                                if (typeof window.kiemTraVaHienThiDanhGiaNhaHang === 'function') {
-                                    window.kiemTraVaHienThiDanhGiaNhaHang(maDonVuaBoQua);
-                                }
-                            }, 1000);
-                        },
-                        error: function () {
-                            isProcessing = false;
-                            var maDonVuaBoQua = $('#ratingMaDon').val();
-                            setTimeout(function () {
-                                if (typeof window.kiemTraVaHienThiDanhGiaNhaHang === 'function') {
-                                    window.kiemTraVaHienThiDanhGiaNhaHang(maDonVuaBoQua);
-                                }
-                            }, 1000);
+                    var skippedStr = localStorage.getItem('skipped_rating_orders');
+                    var skippedOrders = skippedStr ? JSON.parse(skippedStr) : [];
+                    if (!skippedOrders.includes(maDon)) {
+                        skippedOrders.push(maDon);
+                        localStorage.setItem('skipped_rating_orders', JSON.stringify(skippedOrders));
+                    }
+                    
+                    setTimeout(function () {
+                        if (typeof window.kiemTraVaHienThiDanhGiaNhaHang === 'function') {
+                            window.kiemTraVaHienThiDanhGiaNhaHang(maDon);
                         }
-                    });
+                    }, 500);
                 }
             });
 
@@ -355,9 +274,13 @@
             };
 
             window.kiemTraVaHienThiDonTiepTheo = function() {
+                var skippedStr = localStorage.getItem('skipped_rating_orders');
+                var skippedOrders = skippedStr ? JSON.parse(skippedStr) : [];
                 $.ajax({
                     url: '/KhachHang/LayDonTiepTheoCanDanhGia',
                     type: 'GET',
+                    traditional: true,
+                    data: { skippedOrders: skippedOrders },
                     success: function (response) {
                         if (response.success && response.danhGia) {
                             if (typeof window.hienThiModalDanhGia === 'function') {

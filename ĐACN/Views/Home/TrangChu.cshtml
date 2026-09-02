@@ -428,4 +428,21 @@
             }
         });
     </script>
+
+    @if (TempData["OrderSuccess"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đặt hàng thành công!',
+                    text: '@Html.Raw(TempData["OrderSuccess"])',
+                    showConfirmButton: false,
+                    timer: 2500,
+                    timerProgressBar: true,
+                    backdrop: `rgba(0,0,0,0.4)`
+                });
+            });
+        </script>
+    }
 }

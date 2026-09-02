@@ -208,6 +208,7 @@
 </style>
 
 <div class="cart-container container">
+    @Html.AntiForgeryToken()
     @if (TempData["Msg"] != null)
     {
         <div class="alert alert-info alert-dismissible fade show shadow-sm border-0 mb-4 rounded-3" role="alert">
@@ -432,6 +433,12 @@
                         <select class="form-select mb-2" id="district" disabled><option value="">-- Quận / Huyện --</option></select>
                         <select class="form-select mb-2" id="ward" disabled><option value="">-- Phường / Xã --</option></select>
                         <input type="text" id="streetInput" class="form-control mb-3" placeholder="Số nhà, tên đường..." autocomplete="off">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="chkLuuDiaChi" value="true">
+                            <label class="form-check-label text-dark" for="chkLuuDiaChi">
+                                Lưu làm địa chỉ mặc định cho các lần sau
+                            </label>
+                        </div>
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" id="btnCancelEdit">Hủy</button>
                             <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" id="btnSaveAddress">Xác nhận</button>
@@ -543,11 +550,12 @@
             $("#finalDiaChi").val(street); 
 
             $("#btnSaveAddress").html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+            let luuDiaChi = $("#chkLuuDiaChi").is(":checked");
 
             $.ajax({
                 url: '/KhachHang/GetDistanceNhaHangToKhachHang',
                 type: 'GET',
-                data: { maNH: currentMaNH, diaChi: street, phuongXa: wardText, quanHuyen: districtText, tinhTP: cityText },
+                data: { maNH: currentMaNH, diaChi: street, phuongXa: wardText, quanHuyen: districtText, tinhTP: cityText, luuDiaChi: luuDiaChi },
                 success: function (res) {
                     $("#btnSaveAddress").html('Xác nhận').prop('disabled', false);
                     if (res.success && res.data) {

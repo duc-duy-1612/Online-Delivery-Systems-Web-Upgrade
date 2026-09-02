@@ -64,16 +64,15 @@
                                     </label>
                                 </div>
                             </td>
-                            <td class="text-center pe-4">
-                                <a href="@Url.Action("ChinhSuaSanPham","NhaHang", new { id = item.MaMon })" class="btn btn-outline-primary btn-sm btn-action me-1">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
-                                <button class="btn btn-outline-danger btn-sm btn-action me-1" onclick="confirmDelete('@item.MaMon')">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                                <a href="@Url.Action("XemDanhGia","NhaHang", new { id = item.MaMon })" class="btn btn-outline-info btn-sm btn-action">
-                                    <i class="bi bi-star"></i>
-                                </a>
+                            <td class="text-center pe-4" style="white-space: nowrap;">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="@Url.Action("ChinhSuaSanPham","NhaHang", new { id = item.MaMon })" class="btn btn-outline-primary btn-sm btn-action" title="Chỉnh sửa">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger btn-sm btn-action" onclick="confirmDelete('@item.MaMon')" title="Ngừng bán">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     }

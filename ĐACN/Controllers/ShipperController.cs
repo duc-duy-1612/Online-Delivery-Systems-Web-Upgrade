@@ -34,96 +34,7 @@ namespace ĐACN.Controllers
         }
 
 
-        private (bool isValid, string message, double? lat, double? lng) ValidateAddressRealtime(string specificStreet, string fullAddress)
-        {
-            if (string.IsNullOrWhiteSpace(fullAddress)) return (false, "Vui lòng nhập địa chỉ.", null, null);
-            if (fullAddress.Length < 10) return (false, "Địa chỉ quá ngắn.", null, null);
 
-
-            (bool success, JObject data) CallApi(string query)
-            {
-                try
-                {
-                    using (var client = new HttpClient())
-                    {
-                        client.DefaultRequestHeaders.Add("User-Agent", "ZFoodDelivery/1.0");
-                        string search = Uri.EscapeDataString(query);
-                        string url = $"https://api.openrouteservice.org/geocode/search?api_key={ORS_API_KEY}&text={search}&size=1&boundary.country=VN";
-                        var response = client.GetAsync(url).Result;
-                        if (response.IsSuccessStatusCode)
-                        {
-                            var json = response.Content.ReadAsStringAsync().Result;
-                            return (true, JObject.Parse(json));
-                        }
-                    }
-                }
-                catch { }
-                return (false, null);
-            }
-
-
-            var apiResult = CallApi(fullAddress);
-
-            if (apiResult.success && apiResult.data != null)
-            {
-                var features = apiResult.data["features"] as JArray;
-                if (features != null && features.Count > 0)
-                {
-                    var props = features[0]["properties"];
-                    var geometry = features[0]["geometry"]["coordinates"];
-                    double lng = geometry[0].Value<double>();
-                    double lat = geometry[1].Value<double>();
-
-                    string layer = props["layer"]?.ToString().ToLower();
-                    string apiName = props["name"]?.ToString() ?? "";
-                    string apiStreet = props["street"]?.ToString() ?? "";
-
-                    string[] blockedLayers = { "region", "county", "locality", "macrocounty", "country", "neighbourhood" };
-
-                    if (!blockedLayers.Contains(layer))
-                    {
-                        if (IsStreetNameMatching(specificStreet, apiStreet, apiName))
-                        {
-                            return (true, "Hợp lệ", lat, lng);
-                        }
-                    }
-
-
-                    string simplifiedQuery = specificStreet + ", Việt Nam";
-                    var parts = fullAddress.Split(',');
-                    if (parts.Length > 1) simplifiedQuery = specificStreet + ", " + parts[parts.Length - 1];
-
-                    var retryResult = CallApi(simplifiedQuery);
-                    if (retryResult.success && retryResult.data != null)
-                    {
-                        var f2 = retryResult.data["features"] as JArray;
-                        if (f2 != null && f2.Count > 0)
-                        {
-                            var p2 = f2[0]["properties"];
-                            var g2 = f2[0]["geometry"]["coordinates"];
-                            string l2 = p2["layer"]?.ToString().ToLower();
-                            string n2 = p2["name"]?.ToString() ?? "";
-                            string s2 = p2["street"]?.ToString() ?? "";
-
-                            if (!blockedLayers.Contains(l2))
-                            {
-                                if (IsStreetNameMatching(specificStreet, s2, n2))
-                                {
-                                    return (true, "Hợp lệ (Retry)", g2[1].Value<double>(), g2[0].Value<double>());
-                                }
-                            }
-                        }
-                    }
-
-                    if (blockedLayers.Contains(layer))
-                    {
-                        return (false, $"Chỉ tìm thấy khu vực '{apiName}' chung chung.", null, null);
-                    }
-                }
-            }
-
-            return (false, "Không tìm thấy địa chỉ.", null, null);
-        }
 
 
         private (double? lat, double? lng) GeoCodeORS(string address)
@@ -630,7 +541,6 @@ namespace ĐACN.Controllers
                         if (donCheck != null)
                         {
                             donCheck.MaShipper = shipper.MaShipper;
-                            donCheck.TrangThai = "Đang lấy món";
                             db.SaveChanges();
                             transaction.Commit();
                             TempData["Message"] = "Bạn đã nhận đơn thành công.";
@@ -703,7 +613,15 @@ namespace ĐACN.Controllers
 
             db.SaveChanges();
 
-            TempData["Message"] = "Cập nhật trạng thái thành công.";
+            if (trangThai.Equals("Hoàn thành", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["OrderSuccess"] = "Đơn hàng đã được giao thành công!";
+            }
+            else
+            {
+                TempData["Message"] = "Cập nhật trạng thái thành công.";
+            }
+
             return RedirectToAction("Accepted");
         }
 

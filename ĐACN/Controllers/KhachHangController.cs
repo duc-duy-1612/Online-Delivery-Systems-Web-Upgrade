@@ -35,129 +35,7 @@ namespace ĐACN.Controllers
 
 
 
-        private (bool isValid, string message, double? lat, double? lng) ValidateAddressRealtime(string specificStreet, string fullAddress)
-        {
 
-            if (string.IsNullOrWhiteSpace(fullAddress)) return (false, "Vui lòng nhập địa chỉ.", null, null);
-            if (fullAddress.Length < 10) return (false, "Địa chỉ quá ngắn.", null, null);
-
-
-            if (Regex.IsMatch(fullAddress.Replace(",", "").Replace(" ", ""), @"^([a-zA-Z0-9])\1+$"))
-                return (false, "Địa chỉ không hợp lệ.", null, null);
-
-
-            (bool success, JObject data) CallApi(string query)
-            {
-                try
-                {
-                    using (var client = new HttpClient())
-                    {
-                        client.DefaultRequestHeaders.Add("User-Agent", "ZFoodDelivery/1.0");
-                        string search = Uri.EscapeDataString(query);
-                        string url = $"https://api.openrouteservice.org/geocode/search?api_key={ORS_API_KEY}&text={search}&size=1&boundary.country=VN";
-                        var response = client.GetAsync(url).Result;
-                        if (response.IsSuccessStatusCode)
-                        {
-                            var json = response.Content.ReadAsStringAsync().Result;
-                            return (true, JObject.Parse(json));
-                        }
-                    }
-                }
-                catch { }
-                return (false, null);
-            }
-
-
-            var apiResult = CallApi(fullAddress);
-
-            if (apiResult.success && apiResult.data != null)
-            {
-                var features = apiResult.data["features"] as JArray;
-                if (features != null && features.Count > 0)
-                {
-                    var props = features[0]["properties"];
-                    var geometry = features[0]["geometry"]["coordinates"];
-                    double lng = geometry[0].Value<double>();
-                    double lat = geometry[1].Value<double>();
-
-                    string layer = props["layer"]?.ToString().ToLower();
-                    string apiName = props["name"]?.ToString() ?? "";
-                    string apiStreet = props["street"]?.ToString() ?? "";
-
-
-                    string[] blockedLayers = { "region", "county", "locality", "macrocounty", "country", "neighbourhood" };
-
-
-                    if (!blockedLayers.Contains(layer))
-                    {
-
-                        if (IsStreetNameMatching(specificStreet, apiStreet, apiName))
-                        {
-                            return (true, "Hợp lệ", lat, lng);
-                        }
-                    }
-
-
-
-
-
-                    string simplifiedQuery = specificStreet + ", Việt Nam";
-
-                    var parts = fullAddress.Split(',');
-                    if (parts.Length > 1) simplifiedQuery = specificStreet + ", " + parts[parts.Length - 1];
-
-                    var retryResult = CallApi(simplifiedQuery);
-                    if (retryResult.success && retryResult.data != null)
-                    {
-                        var f2 = retryResult.data["features"] as JArray;
-                        if (f2 != null && f2.Count > 0)
-                        {
-                            var p2 = f2[0]["properties"];
-                            var g2 = f2[0]["geometry"]["coordinates"];
-                            string l2 = p2["layer"]?.ToString().ToLower();
-                            string n2 = p2["name"]?.ToString() ?? "";
-                            string s2 = p2["street"]?.ToString() ?? "";
-
-
-                            if (!blockedLayers.Contains(l2))
-                            {
-                                if (IsStreetNameMatching(specificStreet, s2, n2))
-                                {
-                                    return (true, "Hợp lệ (Retry)", g2[1].Value<double>(), g2[0].Value<double>());
-                                }
-                            }
-                        }
-                    }
-
-
-                    if (blockedLayers.Contains(layer))
-                    {
-                        return (false, $"Hệ thống chỉ tìm thấy khu vực '{apiName}' chung chung. Vui lòng kiểm tra lại Số nhà và Tên đường.", null, null);
-                    }
-                }
-            }
-
-            return (false, "Không tìm thấy địa chỉ trên bản đồ.", null, null);
-        }
-
-
-        private bool IsStreetNameMatching(string inputStreet, string apiStreet, string apiName)
-        {
-            string normInput = RemoveVietnameseSigns(inputStreet);
-            string normApiStreet = RemoveVietnameseSigns(apiStreet);
-            string normApiName = RemoveVietnameseSigns(apiName);
-
-
-
-
-            if (!string.IsNullOrEmpty(normApiStreet) && normInput.Contains(normApiStreet)) return true;
-            if (!string.IsNullOrEmpty(normApiName) && normInput.Contains(normApiName)) return true;
-
-
-            if (!string.IsNullOrEmpty(normApiName) && normApiName.Contains(normInput)) return true;
-
-            return false;
-        }
 
 
         private (double? lat, double? lng) GeoCodeORS(string address)
@@ -558,7 +436,11 @@ namespace ĐACN.Controllers
             if (!cart.Any()) { TempData["Msg"] = "Giỏ hàng trống hoặc các món đã chọn không hợp lệ!"; return RedirectToAction("XemGioHang"); }
 
 
-            string finalDiaChi = $"{diaChi}, {phuongXa}, {quanHuyen}, {tinhTP}";
+            string finalDiaChi = diaChi;
+            if (!string.IsNullOrEmpty(phuongXa) && !string.IsNullOrEmpty(quanHuyen) && !string.IsNullOrEmpty(tinhTP))
+            {
+                finalDiaChi = $"{diaChi}, {phuongXa}, {quanHuyen}, {tinhTP}";
+            }
 
 
 
@@ -678,7 +560,7 @@ namespace ĐACN.Controllers
             }
             else
             {
-                TempData["Msg"] = "Hoàn tất đặt món! Đơn hàng của bạn đã được ghi nhận.";
+                TempData["OrderSuccess"] = "Đơn hàng của bạn đã được đặt thành công!";
                 return RedirectToAction("TrangChu", "Home");
             }
         }
@@ -709,16 +591,25 @@ namespace ĐACN.Controllers
 
 
         [HttpGet]
-        public JsonResult GetDistanceNhaHangToKhachHang(string maNH, string diaChi, string phuongXa, string quanHuyen, string tinhTP)
+        public JsonResult GetDistanceNhaHangToKhachHang(string maNH, string diaChi, string phuongXa, string quanHuyen, string tinhTP, bool? luuDiaChi)
         {
 
             string fullAddress = $"{diaChi}, {phuongXa}, {quanHuyen}, {tinhTP}";
 
-
-
             var check = ValidateAddressRealtime(diaChi, fullAddress);
             if (!check.isValid) return Json(new { success = false, message = check.message }, JsonRequestBehavior.AllowGet);
 
+            if (luuDiaChi == true && Session["MaKH"] != null)
+            {
+                string maKH = Session["MaKH"] as string;
+                var kh = db.KhachHangs.Find(maKH);
+                if (kh != null)
+                {
+                    kh.DiaChi = fullAddress;
+                    db.Entry(kh).State = System.Data.Entity.EntityState.Modified;
+                    db.SaveChanges();
+                }
+            }
 
             var nh = db.NhaHangs.Find(maNH);
             double nhLat = nh.Latitude ?? 0, nhLng = nh.Longitude ?? 0;
@@ -1405,23 +1296,28 @@ namespace ĐACN.Controllers
         }
 
         [HttpGet]
-        public JsonResult LayDonTiepTheoCanDanhGia()
+        public JsonResult LayDonTiepTheoCanDanhGia(string[] skippedOrders)
         {
             if (!KiemTraDangNhap())
                 return Json(new { success = false }, JsonRequestBehavior.AllowGet);
 
             string maKH = Session["MaKH"] as string;
 
-
-            var donCanDanhGia = db.DonHangs
+            var donCanDanhGiaList = db.DonHangs
                 .Include(d => d.Shipper)
                 .Where(d => d.MaKH == maKH &&
                              (d.TrangThai == "Hoàn thành" || d.TrangThai == "Hoàn tất") &&
                              !string.IsNullOrEmpty(d.MaShipper))
                 .OrderByDescending(d => d.ThoiGianDat)
                 .ToList()
-                .Where(d => !db.DanhGiaShippers.Any(dg => dg.MaDon == d.MaDon && dg.MaKH == maKH))
-                .FirstOrDefault();
+                .Where(d => !db.DanhGiaShippers.Any(dg => dg.MaDon == d.MaDon && dg.MaKH == maKH));
+
+            if (skippedOrders != null && skippedOrders.Length > 0)
+            {
+                donCanDanhGiaList = donCanDanhGiaList.Where(d => !skippedOrders.Contains(d.MaDon));
+            }
+
+            var donCanDanhGia = donCanDanhGiaList.FirstOrDefault();
 
             if (donCanDanhGia == null)
                 return Json(new { success = false }, JsonRequestBehavior.AllowGet);

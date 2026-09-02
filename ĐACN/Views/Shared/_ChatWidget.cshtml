@@ -172,13 +172,68 @@
         </div>
     </div>
 
+    <!-- Thêm CDN SignalR để đảm bảo hoạt động, bỏ qua file local -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signalr.js/2.4.3/jquery.signalR.min.js"></script>
+    <script src="~/signalr/hubs"></script>
     <script>
         var currentUserId = '@currentUserId';
         var currentUserName = '@Html.Raw(currentUserName)';
         var activeChatPartnerId = '';
         var activeChatMaDon = '';
-        var lastChatTimestamp = 0;
-        var chatPollingInterval = null;
+        
+        // Khởi tạo connection SignalR
+        var chatHub = $.connection.chatHub;
+        var notifHub = $.connection.notificationHub;
+
+        // Đăng ký hàm nhận tin nhắn từ server
+        if (chatHub) {
+            chatHub.client.receiveMessage = function (msg) {
+                // Nếu tin nhắn thuộc về cuộc hội thoại hiện tại
+                if (msg.senderId === activeChatPartnerId || msg.receiverId === activeChatPartnerId || (activeChatMaDon && msg.maDon === activeChatMaDon)) {
+                    appendMessage(msg.message, msg.senderId === currentUserId);
+                    var chatBody = document.getElementById('chatMessages');
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                }
+                
+                // Show badge nếu chat đang ẩn và đây không phải là tin nhắn của mình
+                if (!$('#chatWidget').is(':visible') && msg.senderId !== currentUserId) {
+                    $('#chatBadge').css('display', 'flex');
+                    var uc = $('#unreadCount');
+                    var currentCount = parseInt(uc.text()) || 0;
+                    uc.text(currentCount + 1).show();
+                }
+            };
+        }
+
+        // Đăng ký hàm nhận Notification (Thông báo đẩy)
+        if (notifHub) {
+            notifHub.client.receiveNotification = function (title, message, type) {
+                // Sử dụng SweetAlert2 để hiện toast notification góc màn hình
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: type || 'info', // success, error, warning, info
+                        title: title,
+                        text: message,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true
+                    });
+                } else {
+                    alert(title + ": " + message);
+                }
+            };
+        }
+
+        // Start SignalR Connection
+        $.connection.hub.start().done(function () {
+            console.log("SignalR Connected.");
+            if (chatHub) chatHub.server.connect(currentUserId);
+            if (notifHub) notifHub.server.connect(currentUserId);
+        }).fail(function(err) {
+            console.error("SignalR Connection Error: " + err);
+        });
 
         function openChat(partnerId, partnerName, maDon) {
             activeChatPartnerId = partnerId;
@@ -188,67 +243,24 @@
             $('#chatBadge').hide();
             $('#unreadCount').hide().text('0');
             
-            // Clear old messages and reset timestamp if switching partner
-            $('#chatMessages').html('');
-            lastChatTimestamp = 0;
+            // Clear old messages
+            $('#chatMessages').html('<div class="text-center text-muted small py-2">Bắt đầu trò chuyện (Real-time)</div>');
             
-            pollMessages(); // Fetch immediately
-            
-            if (chatPollingInterval) clearInterval(chatPollingInterval);
-            chatPollingInterval = setInterval(pollMessages, 10000); // 10 seconds polling
+            // Tham gia vào nhóm chat theo mã đơn nếu có
+            if (maDon && chatHub) {
+                chatHub.server.joinOrderGroup(maDon);
+            }
         }
         
         function toggleChat() {
             if ($('#chatWidget').is(':visible')) {
                 $('#chatWidget').hide();
                 $('#chatBadge').css('display', 'flex');
-                if (chatPollingInterval) {
-                    clearInterval(chatPollingInterval);
-                    chatPollingInterval = null;
-                }
             } else {
                 $('#chatWidget').css('display', 'flex');
                 $('#chatBadge').hide();
                 $('#unreadCount').hide().text('0');
-                if (activeChatPartnerId) {
-                    pollMessages();
-                    chatPollingInterval = setInterval(pollMessages, 10000);
-                }
             }
-        }
-
-        function pollMessages() {
-            if (!activeChatPartnerId) return;
-            $.ajax({
-                url: '/Chat/GetMessages',
-                type: 'GET',
-                data: {
-                    userId: currentUserId,
-                    partnerId: activeChatPartnerId,
-                    maDon: activeChatMaDon,
-                    lastTimestamp: lastChatTimestamp
-                },
-                success: function(res) {
-                    if (res.success && res.messages && res.messages.length > 0) {
-                        res.messages.forEach(function(m) {
-                            appendMessage(m.message, m.senderId === currentUserId);
-                            lastChatTimestamp = Math.max(lastChatTimestamp, m.timestamp);
-                        });
-                        
-                        // Scroll to bottom
-                        var chatBody = document.getElementById('chatMessages');
-                        chatBody.scrollTop = chatBody.scrollHeight;
-                        
-                        // Show badge if chat is closed
-                        if (!$('#chatWidget').is(':visible')) {
-                            $('#chatBadge').css('display', 'flex');
-                            var uc = $('#unreadCount');
-                            var currentCount = parseInt(uc.text()) || 0;
-                            uc.text(currentCount + res.messages.length).show();
-                        }
-                    }
-                }
-            });
         }
 
         function appendMessage(text, isMe) {
@@ -262,25 +274,9 @@
             
             $('#chatInput').val('');
             
-            $.ajax({
-                url: '/Chat/SendMessage',
-                type: 'POST',
-                data: {
-                    senderId: currentUserId,
-                    senderName: currentUserName,
-                    receiverId: activeChatPartnerId,
-                    message: text,
-                    maDon: activeChatMaDon
-                },
-                success: function(res) {
-                    if (res.success) {
-                        appendMessage(text, true);
-                        lastChatTimestamp = Math.max(lastChatTimestamp, res.msg.timestamp);
-                        var chatBody = document.getElementById('chatMessages');
-                        chatBody.scrollTop = chatBody.scrollHeight;
-                    }
-                }
-            });
+            if (chatHub) {
+                chatHub.server.sendMessage(currentUserId, currentUserName, activeChatPartnerId, text, activeChatMaDon);
+            }
         }
 
         function handleChatEnter(e) {
@@ -289,7 +285,6 @@
             }
         }
         
-        // Expose openChat to global scope so other scripts can use it
         window.openChat = openChat;
     </script>
 }

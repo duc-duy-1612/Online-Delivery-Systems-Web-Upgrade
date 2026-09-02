@@ -29,7 +29,12 @@ namespace ĐACN.Controllers
                 ds = ds.Where(nh => nh.TenNH.Contains(keyword) || nh.DiaChi.Contains(keyword));
 
             if (!string.IsNullOrEmpty(status))
-                ds = ds.Where(nh => nh.TrangThai == status);
+            {
+                if (status == "Hoạt động")
+                    ds = ds.Where(nh => nh.TaiKhoan != null && nh.TaiKhoan.TrangThai == true);
+                else if (status == "Bị khóa")
+                    ds = ds.Where(nh => nh.TaiKhoan != null && nh.TaiKhoan.TrangThai == false);
+            }
 
             ViewBag.Keyword = keyword;
             ViewBag.Status = status;

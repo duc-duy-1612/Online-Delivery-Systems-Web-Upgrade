@@ -1,7 +1,7 @@
 @model IEnumerable<ĐACN.Models.DonHangListViewModel>
 
 @{
-    ViewBag.Title = "Danh sách đơn hàng (Kanban)";
+    ViewBag.Title = "Danh sách đơn hàng";
     Layout = "~/Views/Shared/_LayoutNhaHang.cshtml";
 }
 
@@ -99,6 +99,14 @@
 
     @Html.AntiForgeryToken()
 
+    @if (TempData["Msg"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            @TempData["Msg"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="kanban-board">
         <!-- Cột 1: Mới nhận -->
         <div class="kanban-column">
@@ -112,11 +120,11 @@
                     <div class="kanban-card status-new" data-id="@don.MaDon">
                         <div class="card-title">
                             <span class="text-primary">#@don.MaDon</span>
-                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
                         </div>
                         <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
                         <div class="card-time mt-1"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM/yyyy"))</div>
-                        <div class="mt-2 text-end">
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
                             <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
                         </div>
                     </div>
@@ -136,11 +144,11 @@
                     <div class="kanban-card status-prep" data-id="@don.MaDon">
                         <div class="card-title">
                             <span class="text-primary">#@don.MaDon</span>
-                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
                         </div>
                         <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
                         <div class="card-time mt-1"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM/yyyy"))</div>
-                        <div class="mt-2 text-end">
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
                             <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
                         </div>
                     </div>
@@ -160,12 +168,12 @@
                     <div class="kanban-card status-ready" data-id="@don.MaDon">
                         <div class="card-title">
                             <span class="text-primary">#@don.MaDon</span>
-                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
                         </div>
                         <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
                         <div class="card-time mt-1"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM/yyyy"))</div>
                         <div class="card-shipper"><i class="bi bi-box-seam"></i> @(don.TenShipper ?? "Chưa có Shipper")</div>
-                        <div class="mt-2 text-end">
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
                             <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
                         </div>
                     </div>
@@ -185,10 +193,10 @@
                     <div class="kanban-card status-done" data-id="@don.MaDon">
                         <div class="card-title">
                             <span class="text-primary">#@don.MaDon</span>
-                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
                         </div>
                         <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
-                        <div class="mt-2 text-end">
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
                             <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
                         </div>
                     </div>

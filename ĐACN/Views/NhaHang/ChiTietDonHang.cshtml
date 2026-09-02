@@ -64,11 +64,28 @@
         <h5>Tổng tiền: <strong class="text-danger">@string.Format("{0:N0} đ", Model.TongTien)</strong></h5>
     </div>
 
-    <div class="mt-3">
-        <button class="btn btn-outline-primary me-2" onclick="openChat('KH_@Model.MaKH', 'Khách hàng @(Model.KhachHang?.TenKH)', '@Model.MaDon')"><i class="bi bi-chat-dots"></i> Chat với Khách hàng</button>
-        @if(!string.IsNullOrEmpty(Model.MaShipper)) {
-            <button class="btn btn-outline-info me-2" onclick="openChat('SH_@Model.MaShipper', 'Tài xế @(Model.Shipper?.TenShipper)', '@Model.MaDon')"><i class="bi bi-chat-dots"></i> Chat với Tài xế</button>
-        }
+    <div class="mt-3 d-flex justify-content-between align-items-center">
+        <div>
+            @using (Html.BeginForm("CapNhatTrangThaiTuChiTiet", "NhaHang", FormMethod.Post, new { @class = "d-inline" }))
+            {
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="maDon" value="@Model.MaDon" />
+                if (Model.TrangThai == "Chờ xác nhận" || Model.TrangThai == "Đang xử lý")
+                {
+                    <input type="hidden" name="trangThai" value="Đã xác nhận" />
+                    <button type="submit" class="btn btn-primary me-2"><i class="bi bi-check2-circle"></i> Xác nhận đơn</button>
+                }
+                else if (Model.TrangThai == "Đã xác nhận")
+                {
+                    <input type="hidden" name="trangThai" value="Đang lấy món" />
+                    <button type="submit" class="btn btn-warning me-2"><i class="bi bi-box-seam"></i> Sẵn sàng giao</button>
+                }
+            }
+            <button class="btn btn-outline-primary me-2" onclick="openChat('KH_@Model.MaKH', 'Khách hàng @(Model.KhachHang?.TenKH)', '@Model.MaDon')"><i class="bi bi-chat-dots"></i> Chat với Khách hàng</button>
+            @if(!string.IsNullOrEmpty(Model.MaShipper)) {
+                <button class="btn btn-outline-info me-2" onclick="openChat('SH_@Model.MaShipper', 'Tài xế @(Model.Shipper?.TenShipper)', '@Model.MaDon')"><i class="bi bi-chat-dots"></i> Chat với Tài xế</button>
+            }
+        </div>
         <a href="@Url.Action("DanhSachDonHang", "NhaHang")" class="btn btn-secondary">← Quay lại</a>
     </div>
 </div>
