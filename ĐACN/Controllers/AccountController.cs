@@ -255,9 +255,22 @@ namespace ĐACN.Controllers
                     return Json(new { success = false, message = "Vai trò không hợp lệ!" });
                 }
             }
+            catch (System.Data.Entity.Validation.DbEntityValidationException dbEx)
+            {
+                var errorMessages = dbEx.EntityValidationErrors
+                        .SelectMany(x => x.ValidationErrors)
+                        .Select(x => x.ErrorMessage);
+                var fullErrorMessage = string.Join("; ", errorMessages);
+                return Json(new { success = false, message = "Lỗi validation: " + fullErrorMessage });
+            }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Có lỗi xảy ra khi đăng ký: " + ex.Message });
+                string inner = ex.InnerException != null ? ex.InnerException.Message : "";
+                if (ex.InnerException != null && ex.InnerException.InnerException != null)
+                {
+                    inner += " | " + ex.InnerException.InnerException.Message;
+                }
+                return Json(new { success = false, message = "Có lỗi xảy ra khi đăng ký: " + ex.Message + " | Chi tiết: " + inner });
             }
         }
 
