@@ -78,13 +78,16 @@ namespace ĐACN.Controllers
         }
 
 
-        public ActionResult ThongKe()
+        public ActionResult ThongKe(string timeRange = "Tháng", string statType = "Thống kê doanh thu")
         {
             if (!CheckLogin()) return RedirectLogin();
 
             var maNH = Session["MaNH"]?.ToString();
             if (string.IsNullOrEmpty(maNH)) return RedirectToAction("TrangChu", "Home");
 
+            ViewBag.CurrentTimeRange = timeRange;
+            ViewBag.CurrentStatType = statType;
+            ViewBag.ChartLabel = statType == "Thống kê doanh thu" ? "Doanh thu (VNĐ)" : "Số lượng (đơn)";
 
             var doanhThuTheoDanhMuc = db.ChiTietDonHangs
                 .Where(ct => ct.DonHang.MaNH == maNH)
@@ -98,21 +101,53 @@ namespace ĐACN.Controllers
             ViewBag.LabelsLoai = doanhThuTheoDanhMuc.Select(x => x.Loai).ToList();
             ViewBag.DataDoanhThuLoai = doanhThuTheoDanhMuc.Select(x => x.DoanhThu).ToList();
 
+            var queryDonHang = db.DonHangs.Where(d => d.MaNH == maNH && d.ThoiGianDat != null);
+            
+            List<string> labelsThoiGian = new List<string>();
+            List<double> dataThoiGian = new List<double>();
 
-            var doanhThuTheoThang = db.DonHangs
-                .Where(d => d.MaNH == maNH && d.ThoiGianDat != null)
-                .GroupBy(d => new { d.ThoiGianDat.Value.Year, d.ThoiGianDat.Value.Month })
-                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
-                .ToList()
-                .Select(g => new
-                {
-                    Nam = g.Key.Year,
-                    Thang = g.Key.Month,
-                    TongDoanhThu = g.Sum(x => x.TongTien)
-                }).ToList();
+            if (timeRange == "Ngày")
+            {
+                var grouped = queryDonHang
+                    .GroupBy(d => new { d.ThoiGianDat.Value.Year, d.ThoiGianDat.Value.Month, d.ThoiGianDat.Value.Day })
+                    .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month).ThenBy(g => g.Key.Day)
+                    .ToList()
+                    .Select(g => new {
+                        Label = $"{g.Key.Day:00}/{g.Key.Month:00}/{g.Key.Year}",
+                        Value = statType == "Thống kê doanh thu" ? (double?)g.Sum(x => x.TongTien) : (double?)g.Count()
+                    }).ToList();
+                labelsThoiGian = grouped.Select(x => x.Label).ToList();
+                dataThoiGian = grouped.Select(x => (double)(x.Value ?? 0)).ToList();
+            }
+            else if (timeRange == "Quý")
+            {
+                var grouped = queryDonHang
+                    .GroupBy(d => new { d.ThoiGianDat.Value.Year, Quy = (d.ThoiGianDat.Value.Month - 1) / 3 + 1 })
+                    .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Quy)
+                    .ToList()
+                    .Select(g => new {
+                        Label = $"Quý {g.Key.Quy}/{g.Key.Year}",
+                        Value = statType == "Thống kê doanh thu" ? (double?)g.Sum(x => x.TongTien) : (double?)g.Count()
+                    }).ToList();
+                labelsThoiGian = grouped.Select(x => x.Label).ToList();
+                dataThoiGian = grouped.Select(x => (double)(x.Value ?? 0)).ToList();
+            }
+            else // Mặc định là Tháng
+            {
+                var grouped = queryDonHang
+                    .GroupBy(d => new { d.ThoiGianDat.Value.Year, d.ThoiGianDat.Value.Month })
+                    .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+                    .ToList()
+                    .Select(g => new {
+                        Label = $"Tháng {g.Key.Month:00}/{g.Key.Year}",
+                        Value = statType == "Thống kê doanh thu" ? (double?)g.Sum(x => x.TongTien) : (double?)g.Count()
+                    }).ToList();
+                labelsThoiGian = grouped.Select(x => x.Label).ToList();
+                dataThoiGian = grouped.Select(x => (double)(x.Value ?? 0)).ToList();
+            }
 
-            ViewBag.LabelsThoiGian = doanhThuTheoThang.Select(x => $"Tháng {x.Thang}/{x.Nam}").ToList();
-            ViewBag.DataDoanhThu = doanhThuTheoThang.Select(x => x.TongDoanhThu).ToList();
+            ViewBag.LabelsThoiGian = labelsThoiGian;
+            ViewBag.DataDoanhThu = dataThoiGian;
 
 
             var listTrangThai = db.DonHangs

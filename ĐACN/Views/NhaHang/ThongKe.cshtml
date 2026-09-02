@@ -6,16 +6,16 @@
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-md-3">
-            <select class="form-select">
-                <option>Ngày</option>
-                <option>Tháng</option>
-                <option>Quý</option>
+            <select class="form-select" id="timeRangeFilter" onchange="filterThongKe()">
+                <option value="Ngày" @(ViewBag.CurrentTimeRange == "Ngày" ? "selected" : "")>Ngày</option>
+                <option value="Tháng" @(ViewBag.CurrentTimeRange == "Tháng" || string.IsNullOrEmpty(ViewBag.CurrentTimeRange as string) ? "selected" : "")>Tháng</option>
+                <option value="Quý" @(ViewBag.CurrentTimeRange == "Quý" ? "selected" : "")>Quý</option>
             </select>
         </div>
         <div class="col-md-3">
-            <select class="form-select">
-                <option>Thống kê doanh thu</option>
-                <option>Thống kê đơn hàng</option>
+            <select class="form-select" id="statTypeFilter" onchange="filterThongKe()">
+                <option value="Thống kê doanh thu" @(ViewBag.CurrentStatType == "Thống kê doanh thu" || string.IsNullOrEmpty(ViewBag.CurrentStatType as string) ? "selected" : "")>Thống kê doanh thu</option>
+                <option value="Thống kê đơn hàng" @(ViewBag.CurrentStatType == "Thống kê đơn hàng" ? "selected" : "")>Thống kê đơn hàng</option>
             </select>
         </div>
     </div>
@@ -154,7 +154,7 @@
             data: {
                 labels: @Html.Raw(Json.Encode(ViewBag.LabelsThoiGian)),
                 datasets: [{
-                    label: 'Doanh thu (VNĐ)',
+                    label: @Html.Raw(Json.Encode(ViewBag.ChartLabel ?? "Doanh thu (VNĐ)")),
                     data: @Html.Raw(Json.Encode(ViewBag.DataDoanhThu)),
                     backgroundColor: '#0dcaf0'
                 }]
@@ -189,5 +189,11 @@
                 }
             }
         });
+
+        function filterThongKe() {
+            var timeRange = document.getElementById("timeRangeFilter").value;
+            var statType = document.getElementById("statTypeFilter").value;
+            window.location.href = '@Url.Action("ThongKe", "NhaHang")' + '?timeRange=' + encodeURIComponent(timeRange) + '&statType=' + encodeURIComponent(statType);
+        }
     </script>
 }
