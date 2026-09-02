@@ -761,7 +761,8 @@ namespace ĐACN.Controllers
                 {
                     Nam = g.Key.Nam,
                     Thang = g.Key.Thang,
-                    DoanhThu = g.Sum(x => (decimal?)x.TongTien) ?? 0
+                    DoanhThu = g.Sum(x => (decimal?)x.TongTien) ?? 0,
+                    HoaHong = (g.Sum(x => (decimal?)x.TongTien) ?? 0) * 0.1m
                 }).ToList();
 
             if (type == "Quý")
@@ -772,7 +773,8 @@ namespace ĐACN.Controllers
                     {
                         Nam = g.Key.Nam,
                         Thang = g.Key.Quy,
-                        DoanhThu = g.Sum(x => x.DoanhThu)
+                        DoanhThu = g.Sum(x => x.DoanhThu),
+                        HoaHong = g.Sum(x => x.HoaHong)
                     }).ToList();
             }
 
@@ -804,7 +806,8 @@ namespace ĐACN.Controllers
                 {
                     Nam = g.Key.Nam,
                     Thang = g.Key.Thang,
-                    TongDoanhThu = g.Sum(x => (decimal?)x.TongTien) ?? 0
+                    TongDoanhThu = g.Sum(x => (decimal?)x.TongTien) ?? 0,
+                    HoaHong = (g.Sum(x => (decimal?)x.TongTien) ?? 0) * 0.1m
                 })
                 .OrderBy(x => x.Nam)
                 .ThenBy(x => x.Thang)
@@ -818,8 +821,8 @@ namespace ĐACN.Controllers
                 {
                     var ws = package.Workbook.Worksheets.Add("ThongKe");
 
-                    ws.Cells["A1"].Value = "BÁO CÁO THỐNG KÊ DOANH THU";
-                    ws.Cells["A1:C1"].Merge = true;
+                    ws.Cells["A1"].Value = "BÁO CÁO THỐNG KÊ DOANH THU VÀ HOA HỒNG";
+                    ws.Cells["A1:D1"].Merge = true;
                     ws.Cells["A1"].Style.Font.Bold = true;
                     ws.Cells["A1"].Style.Font.Size = 16;
                     ws.Cells["A1"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
@@ -827,7 +830,8 @@ namespace ĐACN.Controllers
                     ws.Cells["A3"].Value = "Năm";
                     ws.Cells["B3"].Value = "Tháng";
                     ws.Cells["C3"].Value = "Doanh thu (VNĐ)";
-                    ws.Cells["A3:C3"].Style.Font.Bold = true;
+                    ws.Cells["D3"].Value = "Hoa hồng 10% (VNĐ)";
+                    ws.Cells["A3:D3"].Style.Font.Bold = true;
 
                     int row = 4;
                     foreach (var d in data)
@@ -835,6 +839,7 @@ namespace ĐACN.Controllers
                         ws.Cells[row, 1].Value = d.Nam;
                         ws.Cells[row, 2].Value = d.Thang;
                         ws.Cells[row, 3].Value = d.TongDoanhThu;
+                        ws.Cells[row, 4].Value = d.HoaHong;
                         row++;
                     }
 

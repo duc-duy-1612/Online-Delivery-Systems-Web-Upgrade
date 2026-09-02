@@ -142,18 +142,24 @@
         });
 
         const values = revenueData.map(item => item.DoanhThu);
+        const hoaHongValues = revenueData.map(item => item.HoaHong);
 
-        // Tạo Gradient cho Line chart
+        // Tạo Gradient cho Line chart Doanh thu
         const ctxRevenue = document.getElementById('chartRevenue').getContext('2d');
         let gradient = ctxRevenue.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');   
         gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
 
+        let gradientHoaHong = ctxRevenue.createLinearGradient(0, 0, 0, 400);
+        gradientHoaHong.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+        gradientHoaHong.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
         const chartRevenue = new Chart(ctxRevenue, {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
+                datasets: [
+                {
                     label: 'Doanh thu (VNĐ)',
                     data: values,
                     backgroundColor: gradient,
@@ -166,6 +172,20 @@
                     pointHoverRadius: 6,
                     fill: true,
                     tension: 0.4 // Làm cong đường đồ thị cho mượt
+                },
+                {
+                    label: 'Hoa hồng 10% (VNĐ)',
+                    data: hoaHongValues,
+                    backgroundColor: gradientHoaHong,
+                    borderColor: '#10b981',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#10b981',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4
                 }]
             },
             options: {
@@ -173,18 +193,29 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false // Ẩn legend vì đã có title rõ ràng
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
                     },
                     tooltip: {
                         backgroundColor: '#111827',
                         padding: 12,
                         titleFont: { size: 13, weight: 'normal' },
                         bodyFont: { size: 14, weight: 'bold' },
-                        displayColors: false,
+                        displayColors: true,
                         callbacks: {
                             label: function(context) {
-                                let value = context.parsed.y;
-                                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(context.parsed.y);
+                                }
+                                return label;
                             }
                         }
                     }
@@ -199,7 +230,7 @@
                         ticks: {
                             callback: function(value) {
                                 if (value >= 1000000) {
-                                    return (value / 1000000) + 'Tr';
+                                    return (value / 1000000) + 'M';
                                 }
                                 return value;
                             }

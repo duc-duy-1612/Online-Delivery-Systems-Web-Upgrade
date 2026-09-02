@@ -64,6 +64,18 @@
                             </div>
                         </div>
 
+                        <!-- BẢN ĐỒ GOOGLE MAPS -->
+                        @if (Model.NhaHang != null && Model.KhachHang != null && !string.IsNullOrEmpty(Model.MaShipper))
+                        {
+                            <div class="mb-5">
+                                <div class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">BẢN ĐỒ ĐỊNH VỊ GIAO HÀNG (GOOGLE MAPS)</div>
+                                <div id="map" style="width: 100%; height: 350px; border-radius: 12px; background: #f3f4f6; box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);"></div>
+                                <small class="text-danger mt-2 d-block">
+                                    <i class="bi bi-info-circle"></i> *Lưu ý: Để bản đồ hiển thị đường đi thực tế, lập trình viên cần thay thế mã YOUR_GOOGLE_MAPS_API_KEY_HERE trong source code bằng API Key thật.
+                                </small>
+                            </div>
+                        }
+
                         <div class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">CHI TIẾT MÓN ĂN</div>
                         
                         @if (Model.ChiTietMonAn != null && Model.ChiTietMonAn.Any())
@@ -154,3 +166,37 @@
         </div>
     </div>
 </div>
+
+@section scripts {
+    @if (Model != null && Model.NhaHang != null && Model.KhachHang != null && !string.IsNullOrEmpty(Model.MaShipper))
+    {
+        <script>
+            function initMap() {
+                var map = new google.maps.Map(document.getElementById('map'), {
+                    zoom: 13,
+                    center: {lat: 10.762622, lng: 106.660172} // Mặc định HCM
+                });
+                var directionsService = new google.maps.DirectionsService();
+                var directionsRenderer = new google.maps.DirectionsRenderer();
+                directionsRenderer.setMap(map);
+
+                var originStr = '@Html.Raw(Model.NhaHang.DiaChi)';
+                var destinationStr = '@Html.Raw(Model.KhachHang.DiaChi)';
+
+                var request = {
+                    origin: originStr,
+                    destination: destinationStr,
+                    travelMode: 'DRIVING'
+                };
+                directionsService.route(request, function(result, status) {
+                    if (status == 'OK') {
+                        directionsRenderer.setDirections(result);
+                    } else {
+                        console.error('Không tìm thấy đường đi: ' + status);
+                    }
+                });
+            }
+        </script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY_HERE&callback=initMap" async defer></script>
+    }
+}

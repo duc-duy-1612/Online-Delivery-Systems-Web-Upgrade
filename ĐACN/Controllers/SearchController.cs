@@ -28,13 +28,13 @@ namespace ĐACN.Controllers
             if (string.IsNullOrWhiteSpace(q))
                 return Json(new { success = true, items = new object[0] }, JsonRequestBehavior.AllowGet);
 
-            string keyword = RemoveVietnameseSigns(q).ToLower().Trim();
+            string keyword = q.Trim();
 
             // Tìm nhà hàng
             var nhaHangs = db.NhaHangs
-                .Where(nh => nh.TaiKhoan != null && nh.TaiKhoan.TrangThai == true)
+                .Where(nh => nh.TaiKhoan != null && nh.TaiKhoan.TrangThai == true && nh.TenNH.Contains(keyword))
+                .Take(3)
                 .ToList()
-                .Where(nh => RemoveVietnameseSigns(nh.TenNH).ToLower().Contains(keyword))
                 .Select(nh => new {
                     type = "nhahang",
                     id = nh.MaNH,
@@ -42,13 +42,13 @@ namespace ĐACN.Controllers
                     desc = nh.DiaChi,
                     img = "/images/nhahang/" + nh.HinhAnh,
                     url = Url.Action("XemMenu", "KhachHang", new { id = nh.MaNH })
-                }).Take(3).ToList();
+                }).ToList();
 
             // Tìm món ăn
             var monAns = db.MonAns
-                .Where(m => m.NhaHang != null && m.NhaHang.TaiKhoan != null && m.NhaHang.TaiKhoan.TrangThai == true)
+                .Where(m => m.NhaHang != null && m.NhaHang.TaiKhoan != null && m.NhaHang.TaiKhoan.TrangThai == true && m.TenMon.Contains(keyword))
+                .Take(4)
                 .ToList()
-                .Where(m => RemoveVietnameseSigns(m.TenMon).ToLower().Contains(keyword))
                 .Select(m => new {
                     type = "monan",
                     id = m.MaMon,
@@ -56,7 +56,7 @@ namespace ĐACN.Controllers
                     desc = string.Format("{0:N0} đ", m.Gia),
                     img = "/images/monan/" + m.HinhAnh,
                     url = Url.Action("XemMenu", "KhachHang", new { id = m.MaNH })
-                }).Take(4).ToList();
+                }).ToList();
 
             var results = nhaHangs.Cast<object>().Concat(monAns).ToList();
 
