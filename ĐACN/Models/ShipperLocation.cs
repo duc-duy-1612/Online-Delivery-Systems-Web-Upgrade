@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 
 namespace ĐACN.Models
@@ -38,6 +38,11 @@ namespace ĐACN.Models
         public static void ClearLocation(string maShipper)
         {
             locations.TryRemove(maShipper, out _);
+        }
+
+        public static System.Collections.Generic.IEnumerable<ShipperLocation> GetAllLocations()
+        {
+            return locations.Values;
         }
     }
 }

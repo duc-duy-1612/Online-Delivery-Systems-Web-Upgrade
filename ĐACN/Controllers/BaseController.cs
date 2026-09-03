@@ -167,6 +167,28 @@ namespace ĐACN.Controllers
             }
 
             var apiResult = CallApi(fullAddress);
+            
+            // Fallback 1: Remove house number / specific street info (first comma segment)
+            if (!apiResult.success || apiResult.data == null || (apiResult.data["features"] as JArray)?.Count == 0)
+            {
+                var parts = fullAddress.Split(',');
+                if (parts.Length > 1)
+                {
+                    string fallbackAddress = string.Join(",", parts.Skip(1)).Trim();
+                    apiResult = CallApi(fallbackAddress);
+                }
+            }
+
+            // Fallback 2: Remove ward info, just search district/city
+            if (!apiResult.success || apiResult.data == null || (apiResult.data["features"] as JArray)?.Count == 0)
+            {
+                var parts = fullAddress.Split(',');
+                if (parts.Length > 2)
+                {
+                    string fallbackAddress2 = string.Join(",", parts.Skip(2)).Trim();
+                    apiResult = CallApi(fallbackAddress2);
+                }
+            }
 
             if (apiResult.success && apiResult.data != null)
             {

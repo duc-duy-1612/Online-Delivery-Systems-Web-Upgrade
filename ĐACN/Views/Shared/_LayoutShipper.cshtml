@@ -183,6 +183,74 @@
     @Scripts.Render("~/bundles/jquery")
     @Scripts.Render("~/bundles/bootstrap")
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signalr.js/2.4.3/jquery.signalR.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script>
+        $(function () {
+            var hub = $.connection.deliveryHub;
+            
+            hub.client.notifyNewOrder = function (message) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Thông báo Shipper',
+                    text: message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            };
+
+            hub.client.pingOrder = function (maDon, distanceKm) {
+                let timerInterval;
+                Swal.fire({
+                    title: '🔥 CÓ ĐƠN HÀNG MỚI! 🔥',
+                    html: `<b>Mã đơn:</b> ${maDon}<br><b>Khoảng cách:</b> ${distanceKm} km<br><br> Tự động từ chối sau <b></b> giây.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'NHẬN ĐƠN',
+                    cancelButtonText: 'Bỏ qua',
+                    confirmButtonColor: '#ff416c',
+                    timer: 15000,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        const b = Swal.getHtmlContainer().querySelector('b:last-of-type');
+                        timerInterval = setInterval(() => {
+                            b.textContent = Math.ceil(Swal.getTimerLeft() / 1000);
+                        }, 100);
+                    },
+                    willClose: () => {
+                        clearInterval(timerInterval);
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Accept the order
+                        var form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '/Shipper/Accept';
+                        var input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'maDon';
+                        input.value = maDon;
+                        form.appendChild(input);
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                });
+            };
+
+            $.connection.hub.start().done(function () {
+                hub.server.joinGroup("Shippers");
+                var maSP = '@Session["MaShipper"]';
+                if (maSP) {
+                    hub.server.joinGroup("Shipper_" + maSP);
+                }
+            });
+        });
+    </script>
+
     @Html.Partial("~/Views/Shared/_ChatWidget.cshtml")
     @RenderSection("Scripts", required: false)
 </body>

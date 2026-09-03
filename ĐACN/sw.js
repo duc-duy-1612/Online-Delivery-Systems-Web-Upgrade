@@ -1,6 +1,18 @@
-const CACHE_NAME = "zfood-cache-v2";
+const CACHE_NAME = "zfood-cache-v3";
+const urlsToCache = [
+    '/',
+    '/Content/bootstrap.min.css',
+    '/css/trangchu.css',
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+];
 
 self.addEventListener("install", e => {
+    e.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => {
+                return cache.addAll(urlsToCache);
+            })
+    );
     self.skipWaiting();
 });
 

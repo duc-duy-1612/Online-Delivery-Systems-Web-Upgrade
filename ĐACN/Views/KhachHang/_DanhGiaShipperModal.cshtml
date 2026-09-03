@@ -184,6 +184,10 @@
                                 $('body').removeClass('modal-open');
                                 $('body').css('overflow', '');
                                 $('body').css('padding-right', '');
+                                
+                                if (typeof window.kiemTraVaHienThiDanhGiaNhaHang === 'function') {
+                                    window.kiemTraVaHienThiDanhGiaNhaHang(maDon);
+                                }
                             }, 300);
                             
                             setTimeout(function () {
@@ -273,26 +277,7 @@
                 });
             };
 
-            window.kiemTraVaHienThiDonTiepTheo = function() {
-                var skippedStr = localStorage.getItem('skipped_rating_orders');
-                var skippedOrders = skippedStr ? JSON.parse(skippedStr) : [];
-                $.ajax({
-                    url: '/KhachHang/LayDonTiepTheoCanDanhGia',
-                    type: 'GET',
-                    traditional: true,
-                    data: { skippedOrders: skippedOrders },
-                    success: function (response) {
-                        if (response.success && response.danhGia) {
-                            if (typeof window.hienThiModalDanhGia === 'function') {
-                                window.hienThiModalDanhGia(response.danhGia);
-                            }
-                        }
-                    },
-                    error: function () {
-                        console.log('Lỗi khi kiểm tra đơn tiếp theo');
-                    }
-                });
-            };
+
         }
 
         if (typeof jQuery !== 'undefined') {

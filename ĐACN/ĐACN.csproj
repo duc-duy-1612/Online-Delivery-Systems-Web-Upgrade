@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" />
   <Import Project="..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.2.0.1\build\net46\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props" Condition="Exists('..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.2.0.1\build\net46\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props')" />
@@ -13,8 +13,8 @@
     <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ĐACN</RootNamespace>
-    <AssemblyName>ĐACN</AssemblyName>
+    <RootNamespace>ÄACN</RootNamespace>
+    <AssemblyName>ÄACN</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <MvcBuildViews>false</MvcBuildViews>
     <UseIISExpress>true</UseIISExpress>
@@ -192,7 +192,7 @@
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
-    <Compile Include="ChiTietDonHang.cs">
+    <Compile Include="Models\Database\ChiTietDonHang.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
     <Compile Include="Controllers\AccountController.cs" />
@@ -205,47 +205,48 @@
     <Compile Include="Controllers\NhaHangController.cs" />
     <Compile Include="Controllers\SearchController.cs" />
     <Compile Include="Controllers\ShipperController.cs" />
-    <Compile Include="DanhGia.cs">
+    <Compile Include="Models\Database\DanhGia.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
-    <Compile Include="DanhGiaNhaHang.cs">
+    <Compile Include="Models\Database\DanhGiaNhaHang.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
-    <Compile Include="DanhGiaShipper.cs">
+    <Compile Include="Models\Database\DanhGiaShipper.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
-    <Compile Include="DonHang.cs">
+    <Compile Include="Models\Database\DonHang.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
     <Compile Include="Filters\CustomExceptionFilter.cs" />
     <Compile Include="Hubs\ChatHub.cs" />
     <Compile Include="Hubs\NotificationHub.cs" />
     <Compile Include="Startup.cs" />
-    <Compile Include="FoodDeliveryDB.Context.cs">
+    <Compile Include="Models\Database\FoodDeliveryDB.Context.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>FoodDeliveryDB.Context.tt</DependentUpon>
     </Compile>
-    <Compile Include="FoodDeliveryDB.cs">
+    <Compile Include="Models\Database\FoodDeliveryDB.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
-    <Compile Include="FoodDeliveryDB.Designer.cs">
+    <Compile Include="Models\Database\FoodDeliveryDB.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>FoodDeliveryDB.edmx</DependentUpon>
     </Compile>
+    <Compile Include="Hubs\DeliveryHub.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="KhachHang.cs">
+    <Compile Include="Models\Database\KhachHang.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
-    <Compile Include="LichSuGioHang.cs">
+    <Compile Include="Models\Database\LichSuGioHang.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
-    <Compile Include="LoaiMonAn.cs">
+    <Compile Include="Models\Database\LoaiMonAn.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\AcceptedOrderView.cs" />
@@ -271,19 +272,20 @@
     <Compile Include="Models\TheoDoiDonHangViewModel.cs" />
     <Compile Include="Models\TopSanPhamViewModel.cs" />
     <Compile Include="Models\TrangChuViewModel.cs" />
-    <Compile Include="MonAn.cs">
+    <Compile Include="Models\Database\MonAn.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
-    <Compile Include="NhaHang.cs">
+    <Compile Include="Models\Database\NhaHang.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Shipper.cs">
+    <Compile Include="Models\Database\Shipper.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
-    <Compile Include="TaiKhoan.cs">
+    <Compile Include="Models\Database\TaiKhoan.cs">
       <DependentUpon>FoodDeliveryDB.tt</DependentUpon>
     </Compile>
+    <Compile Include="Services\OrderDispatcher.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\bootstrap-grid.css" />
@@ -303,20 +305,18 @@
     <Content Include="Content\bootstrap.rtl.css" />
     <Content Include="Content\bootstrap.rtl.min.css" />
     <Content Include="favicon.ico" />
-    <Content Include="FoodDeliveryDB.Context.tt">
+    <Content Include="Models\Database\FoodDeliveryDB.Context.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <DependentUpon>FoodDeliveryDB.edmx</DependentUpon>
       <LastGenOutput>FoodDeliveryDB.Context.cs</LastGenOutput>
     </Content>
-    <Content Include="FoodDeliveryDB.tt">
+    <Content Include="Models\Database\FoodDeliveryDB.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <DependentUpon>FoodDeliveryDB.edmx</DependentUpon>
       <LastGenOutput>FoodDeliveryDB.cs</LastGenOutput>
     </Content>
     <Content Include="Global.asax" />
     <Content Include="Content\Site.css" />
-    <Content Include="images\arrows\customer-arrow.png" />
-    <Content Include="images\arrows\restaurant-arrow.png" />
     <Content Include="images\arrows\shipper.png" />
     <Content Include="images\danhmuc\an_vat.png" />
     <Content Include="images\danhmuc\bun.png" />
@@ -395,7 +395,6 @@
     <Content Include="images\nhahang\steak_cowboyjack.jpg" />
     <Content Include="images\nhahang\sushi_hokkaido.jpg" />
     <Content Include="images\nhahang\sushi_shin.jpg" />
-    <Content Include="images\others\qr_thanh_toan_mau.png" />
     <Content Include="images\shipper\Doran_638998532117615855.png" />
     <Content Include="images\shipper\doran_lol_4_b6a175b910_638987899136447301.png" />
     <Content Include="images\shipper\doran_lol_4_b6a175b910_638987918592955148.png" />
@@ -408,11 +407,11 @@
     <Content Include="Scripts\bootstrap.esm.min.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
-    <EntityDeploy Include="FoodDeliveryDB.edmx">
+    <EntityDeploy Include="Models\Database\FoodDeliveryDB.edmx">
       <Generator>EntityModelCodeGenerator</Generator>
       <LastGenOutput>FoodDeliveryDB.Designer.cs</LastGenOutput>
     </EntityDeploy>
-    <Content Include="FoodDeliveryDB.edmx.diagram">
+    <Content Include="Models\Database\FoodDeliveryDB.edmx.diagram">
       <DependentUpon>FoodDeliveryDB.edmx</DependentUpon>
     </Content>
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />

@@ -174,6 +174,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link" href="@Url.Action("TrangChu", "Home")">Trang chủ</a></li>
+                    <li class="nav-item d-none" id="installContainer"><button id="btnInstall" class="btn btn-sm btn-outline-danger ms-2 rounded-pill"><i class="fa-solid fa-download me-1"></i> Tải App ZFood</button></li>
                     <li class="nav-item"><a class="nav-link require-login" href="@Url.Action("DanhMuc", "Home")">Danh mục</a></li>
                     <li class="nav-item"><a class="nav-link require-login" href="@Url.Action("NhaHang", "Home")">Nhà hàng nổi bật</a></li>
 
@@ -394,10 +395,15 @@
             
             @if (tk != null && tk.VaiTro == "KhachHang")
             {
-                <text>
-                function kiemTraVaHienThiDonTiepTheo() {
+                window.kiemTraVaHienThiDonTiepTheo = function() {
                     if (typeof $ === 'undefined' || !$) {
-                        setTimeout(kiemTraVaHienThiDonTiepTheo, 100);
+                        setTimeout(window.kiemTraVaHienThiDonTiepTheo, 100);
+                        return;
+                    }
+                    
+                    // Nếu đang hiển thị modal đánh giá, tạm dừng vòng lặp này để không bị chèn ép popup
+                    if ($('.modal.show').length > 0) {
+                        setTimeout(window.kiemTraVaHienThiDonTiepTheo, 15000);
                         return;
                     }
                     
@@ -416,16 +422,16 @@
                                 }
                             }
                             // Kiểm tra lại sau 15 giây
-                            setTimeout(kiemTraVaHienThiDonTiepTheo, 15000);
+                            setTimeout(window.kiemTraVaHienThiDonTiepTheo, 15000);
                         },
                         error: function () {
-                            setTimeout(kiemTraVaHienThiDonTiepTheo, 15000);
+                            setTimeout(window.kiemTraVaHienThiDonTiepTheo, 15000);
                         }
                     });
                 }
 
                 // Khởi chạy vòng lặp đầu tiên sau 5 giây
-                setTimeout(kiemTraVaHienThiDonTiepTheo, 5000);
+                setTimeout(window.kiemTraVaHienThiDonTiepTheo, 5000);
                 </text>
             }
             $('.nav-item.dropdown').hover(
@@ -513,6 +519,62 @@
                 navigator.serviceWorker.register('/sw.js')
                 .then(() => console.log("Service Worker Registered"));
             }
+
+            // Handle PWA Install Prompt
+            let deferredPrompt;
+            const installContainer = document.getElementById('installContainer');
+            const btnInstall = document.getElementById('btnInstall');
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installContainer.classList.remove('d-none');
+            });
+
+            if(btnInstall) {
+                btnInstall.addEventListener('click', async () => {
+                    if (deferredPrompt !== null) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            installContainer.classList.add('d-none');
+                        }
+                        deferredPrompt = null;
+                    }
+                });
+            }
+        });
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signalr.js/2.4.3/jquery.signalR.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script>
+        $(function () {
+            var hub = $.connection.deliveryHub;
+            
+            hub.client.notifyNewOrder = function (message) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Thông báo đơn hàng',
+                        text: message,
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true
+                    });
+                } else {
+                    alert(message);
+                }
+            };
+
+            $.connection.hub.start().done(function () {
+                var maKH = '@Session["MaKH"]';
+                if (maKH) {
+                    hub.server.joinGroup("KhachHang_" + maKH);
+                }
+            });
         });
     </script>
 

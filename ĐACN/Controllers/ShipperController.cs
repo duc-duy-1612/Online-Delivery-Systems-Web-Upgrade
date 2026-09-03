@@ -543,6 +543,16 @@ namespace ĐACN.Controllers
                             donCheck.MaShipper = shipper.MaShipper;
                             db.SaveChanges();
                             transaction.Commit();
+
+                            // SignalR Notification
+                            try
+                            {
+                                var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                                context.Clients.Group("NhaHang_" + donCheck.MaNH).notifyNewOrder($"Shipper {shipper.TenShipper} đã nhận giao đơn hàng {maDon}");
+                                context.Clients.Group("KhachHang_" + donCheck.MaKH).notifyNewOrder($"Shipper {shipper.TenShipper} đang trên đường đến nhà hàng lấy đơn {maDon}");
+                            }
+                            catch { }
+
                             TempData["Message"] = "Bạn đã nhận đơn thành công.";
                         }
                         else
@@ -612,6 +622,15 @@ namespace ĐACN.Controllers
             }
 
             db.SaveChanges();
+
+            // SignalR Notification
+            try
+            {
+                var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                string msg = trangThai == "Đang giao" ? $"Đơn hàng {maDon} đang được giao đến bạn" : $"Đơn hàng {maDon} đã được giao thành công";
+                context.Clients.Group("KhachHang_" + don.MaKH).notifyNewOrder(msg);
+            }
+            catch { }
 
             if (trangThai.Equals("Hoàn thành", StringComparison.OrdinalIgnoreCase))
             {

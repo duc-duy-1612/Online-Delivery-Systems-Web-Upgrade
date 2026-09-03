@@ -560,6 +560,14 @@ namespace ĐACN.Controllers
             }
             else
             {
+                // Thông báo tới Nhà Hàng qua SignalR (COD)
+                try
+                {
+                    var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                    context.Clients.Group("NhaHang_" + maNH).notifyNewOrder($"Có đơn hàng COD mới: {maDon}");
+                }
+                catch { }
+
                 TempData["OrderSuccess"] = "Đơn hàng của bạn đã được đặt thành công!";
                 return RedirectToAction("TrangChu", "Home");
             }
@@ -584,6 +592,14 @@ namespace ĐACN.Controllers
             {
                 don.TrangThai = "Đã nhận đơn";
                 db.SaveChanges();
+                
+                // Thông báo tới Nhà Hàng qua SignalR
+                try
+                {
+                    var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                    context.Clients.Group("NhaHang_" + don.MaNH).notifyNewOrder($"Có đơn hàng QR mới: {maDon}");
+                }
+                catch { }
             }
             TempData["Msg"] = "Thanh toán thành công! Đơn hàng đang xử lý."; 
             return RedirectToAction("DonHangCuaToi"); 
@@ -1314,7 +1330,7 @@ namespace ĐACN.Controllers
 
             if (skippedOrders != null && skippedOrders.Length > 0)
             {
-                donCanDanhGiaList = donCanDanhGiaList.Where(d => !skippedOrders.Contains(d.MaDon));
+                donCanDanhGiaList = donCanDanhGiaList.Where(d => !skippedOrders.Contains(d.MaDon.Trim()));
             }
 
             var donCanDanhGia = donCanDanhGiaList.FirstOrDefault();

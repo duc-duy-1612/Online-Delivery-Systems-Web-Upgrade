@@ -708,12 +708,7 @@
             }
         });
 
-        $(".cart-item").off("click").on("click", function (e) {
-            if ($(e.target).closest(".btn-update-qty, .btn-remove, .btn-edit-note, .btn-add-note").length > 0) return;
-            // Optionally, still allow clicking the whole card to edit note
-            const id = $(this).data("id");
-            openNoteModal(id);
-        });
+
 
         $(".btn-edit-note, .btn-add-note").off("click").click(function(e) {
             e.stopPropagation();

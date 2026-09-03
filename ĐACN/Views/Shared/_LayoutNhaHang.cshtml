@@ -226,6 +226,36 @@
         @RenderBody()
     </div>
     @Html.Partial("~/Views/Shared/_ChatWidget.cshtml")
+    
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signalr.js/2.4.3/jquery.signalR.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script>
+        $(function () {
+            var hub = $.connection.deliveryHub;
+            
+            hub.client.notifyNewOrder = function (message) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Thông báo',
+                    text: message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            };
+
+            $.connection.hub.start().done(function () {
+                var maNH = '@Session["MaNH"]';
+                if (maNH) {
+                    hub.server.joinGroup("NhaHang_" + maNH);
+                }
+            });
+        });
+    </script>
+    
     @RenderSection("Scripts", required: false)
 </body>
 </html>

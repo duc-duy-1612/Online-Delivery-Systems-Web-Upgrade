@@ -284,12 +284,8 @@
                                     location.reload();
                                 }, 500);
                             } else {
-
                                 setTimeout(function () {
                                     isProcessingNH = false;
-                                    if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
-                                        window.kiemTraVaHienThiDonTiepTheo();
-                                    }
                                 }, 1000);
                             }
                         } else {
@@ -339,14 +335,6 @@
                             skippedOrders.push(maDon);
                             localStorage.setItem('skipped_rating_orders', JSON.stringify(skippedOrders));
                         }
-                    }
-                    
-                    if (!isFromHistory) {
-                        setTimeout(function () {
-                            if (typeof window.kiemTraVaHienThiDonTiepTheo === 'function') {
-                                window.kiemTraVaHienThiDonTiepTheo();
-                            }
-                        }, 500);
                     }
                 }
             });

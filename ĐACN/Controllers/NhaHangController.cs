@@ -802,6 +802,17 @@ namespace ĐACN.Controllers
                     db.Database.ExecuteSqlCommand("IF OBJECT_ID('CHK_DonHang_TrangThai', 'C') IS NOT NULL ALTER TABLE DonHang DROP CONSTRAINT CHK_DonHang_TrangThai");
                     db.SaveChanges();
                     TempData["Msg"] = "Đã cập nhật trạng thái đơn hàng!";
+
+                    // SignalR Notification
+                    try
+                    {
+                        var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                        if (trangThai == "Đã xác nhận" && string.IsNullOrEmpty(don.MaShipper))
+                        {
+                            ĐACN.Services.OrderDispatcher.DispatchOrder(don.MaDon, don.MaNH);
+                        }
+                    }
+                    catch { }
                 }
                 catch (System.Data.Entity.Validation.DbEntityValidationException dbEx)
                 {
@@ -1230,6 +1241,21 @@ namespace ĐACN.Controllers
 
                 donHang.TrangThai = "Đang lấy món";
                 db.SaveChanges();
+
+                // SignalR Notification
+                try
+                {
+                    var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                    if (!string.IsNullOrEmpty(donHang.MaShipper))
+                    {
+                        context.Clients.Group("Shipper_" + donHang.MaShipper).notifyNewOrder($"Món ăn cho đơn {maDon} đã làm xong, tới lấy ngay!");
+                    }
+                    else
+                    {
+                        context.Clients.Group("Shippers").notifyNewOrder($"Có đơn đã làm xong cần giao ngay ({maDon})");
+                    }
+                }
+                catch { }
 
                 TempData["Success"] = $"Đã cập nhật trạng thái đơn hàng {maDon} thành 'Đang lấy món'!";
             }
